@@ -1,0 +1,1283 @@
+from __future__ import annotations
+
+import json
+from pathlib import Path
+import shutil
+import subprocess
+import textwrap
+from typing import Any
+
+import pytest
+
+
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+
+
+def _run_iterate_hook(
+    *,
+    function_name: str,
+    payload: dict,
+    prompts: list[dict] | None = None,
+    capture_logs: bool = False,
+    random_values: list[float] | None = None,
+) -> Any:
+    if shutil.which("node") is None:
+        pytest.skip("node not installed")
+
+    node_script = textwrap.dedent(
+        f"""
+        const fs = require('fs');
+        const vm = require('vm');
+
+        const capturedLogs = [];
+        const formatLogValue = (value) => {{
+          if (typeof value === 'string') return value;
+          try {{
+            return JSON.stringify(value);
+          }} catch {{
+            return String(value);
+          }}
+        }};
+
+        global.window = {{ Pages: {{}}, __ITERATE_TEST_HOOKS__: {{}} }};
+        global.document = {{}};
+        const promptRows = {json.dumps(prompts or [])};
+        const randomValues = {json.dumps(random_values or [])};
+        if (randomValues.length) {{
+          let randomIndex = 0;
+          Math.random = () => {{
+            const value = Number(randomValues[randomIndex % randomValues.length]);
+            randomIndex += 1;
+            return Number.isFinite(value) ? value : 0;
+          }};
+        }}
+        global.console = {{
+          log: (...args) => capturedLogs.push({{ level: 'log', message: args.map(formatLogValue).join(' ') }}),
+          warn: (...args) => capturedLogs.push({{ level: 'warn', message: args.map(formatLogValue).join(' ') }}),
+          error: (...args) => capturedLogs.push({{ level: 'error', message: args.map(formatLogValue).join(' ') }}),
+        }};
+        global.DB = {{
+          dbGetAll: (table) => table === 'prompts' ? promptRows : [],
+          dbGet: (table, key) => table === 'prompts' ? (promptRows.find((row) => String(row.id) === String(key)) || null) : null,
+        }};
+        global.OpenRouter = {{ MODELS: [] }};
+        global.Toast = {{}};
+        global.JobQueue = {{}};
+        global.escapeHtml = (value) => String(value ?? '');
+        global.window.normalizeAssetUrl = (value) => {{
+          const token = String(value || '').trim();
+          if (!token) return '';
+          if (token.startsWith('/')) return token;
+          return `/${{token.replace(/^\\.?\\//, '')}}`;
+        }};
+        global.window.buildProjectAssetUrl = (value, versionToken = '') => {{
+          const token = String(value || '').trim().replace(/^\\/+/, '');
+          if (!token) return '';
+          const suffix = versionToken ? `?v=${{encodeURIComponent(String(versionToken))}}` : '';
+          return `/api/asset?path=${{encodeURIComponent(token)}}${{suffix}}`;
+        }};
+        global.window.buildProjectThumbnailUrl = (value, size = 'large', versionToken = '') => {{
+          const token = String(value || '').trim().replace(/^\\/+/, '');
+          if (!token) return '';
+          const params = new URLSearchParams({{ path: token, size: String(size || 'large') }});
+          if (versionToken) params.set('v', String(versionToken));
+          return `/api/thumbnail?${{params.toString()}}`;
+        }};
+        global.window.resolveBackendAssetUrl = (value, versionToken = '') => global.window.buildProjectAssetUrl(value, versionToken);
+        global.getBlobUrl = (value) => typeof value === 'string' ? global.window.normalizeAssetUrl(value) : '';
+        global.fetchDownloadBlob = async () => {{ throw new Error('unused'); }};
+        global.ensureJSZip = async () => {{ throw new Error('unused'); }};
+        global.uuid = () => 'job-1';
+        global.StyleDiversifier = {{
+          buildDiversifiedPrompt: () => 'Create a breathtaking legacy prompt.',
+          selectDiverseStyles: () => [{{ id: 'romantic-sublime', label: 'Romantic Sublime' }}],
+        }};
+
+        const source = fs.readFileSync('src/static/js/pages/iterate.js', 'utf8');
+        vm.runInThisContext(source, {{ filename: 'iterate.js' }});
+        const fn = window.__ITERATE_TEST_HOOKS__[{json.dumps(function_name)}];
+        const result = fn({json.dumps(payload)});
+        process.stdout.write(JSON.stringify({str(capture_logs).lower()} ? {{ result, logs: capturedLogs }} : result));
+        """
+    )
+    proc = subprocess.run(
+        ["node", "-e", node_script],
+        cwd=PROJECT_ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert proc.returncode == 0, proc.stderr or proc.stdout
+    return json.loads(proc.stdout)
+
+
+def _run_iterate_prompt_builder(payload: dict) -> dict:
+    return _run_iterate_hook(function_name="buildGenerationJobPrompt", payload=payload)
+
+
+def _run_iterate_variant_payloads(
+    payload: dict,
+    prompts: list[dict] | None = None,
+    *,
+    capture_logs: bool = False,
+    random_values: list[float] | None = None,
+) -> dict:
+    return _run_iterate_hook(
+        function_name="buildVariantPromptPayloads",
+        payload=payload,
+        prompts=prompts,
+        capture_logs=capture_logs,
+        random_values=random_values,
+    )
+
+
+def _run_iterate_variant_summary_lines(entries: list[dict]) -> list[str]:
+    return _run_iterate_hook(function_name="formatVariantSummaryLines", payload={"entries": entries})
+
+
+def _run_iterate_ui_defaults() -> dict:
+    return _run_iterate_hook(function_name="iterateUiDefaults", payload={})
+
+
+def _run_iterate_apply_prompt_placeholders(
+    *,
+    prompt_text: str,
+    book: dict,
+    scene_override: str = "",
+    mood_override: str = "",
+    era_override: str = "",
+) -> str:
+    if shutil.which("node") is None:
+        pytest.skip("node not installed")
+
+    node_script = textwrap.dedent(
+        f"""
+        const fs = require('fs');
+        const vm = require('vm');
+
+        global.window = {{ Pages: {{}}, __ITERATE_TEST_HOOKS__: {{}} }};
+        global.document = {{}};
+        global.DB = {{
+          dbGetAll: () => [],
+          dbGet: () => null,
+        }};
+        global.OpenRouter = {{ MODELS: [] }};
+        global.Toast = {{}};
+        global.JobQueue = {{}};
+        global.escapeHtml = (value) => String(value ?? '');
+        global.getBlobUrl = () => '';
+        global.fetchDownloadBlob = async () => {{ throw new Error('unused'); }};
+        global.ensureJSZip = async () => {{ throw new Error('unused'); }};
+        global.uuid = () => 'job-1';
+        global.StyleDiversifier = {{
+          buildDiversifiedPrompt: () => 'Create a breathtaking legacy prompt.',
+          selectDiverseStyles: () => [{{ id: 'romantic-sublime', label: 'Romantic Sublime' }}],
+        }};
+
+        const source = fs.readFileSync('src/static/js/pages/iterate.js', 'utf8');
+        vm.runInThisContext(source, {{ filename: 'iterate.js' }});
+        const result = window.__ITERATE_TEST_HOOKS__.applyPromptPlaceholders(
+          {json.dumps(prompt_text)},
+          {json.dumps(book)},
+          {json.dumps(scene_override)},
+          {json.dumps(mood_override)},
+          {json.dumps(era_override)}
+        );
+        process.stdout.write(JSON.stringify(result));
+        """
+    )
+    proc = subprocess.run(
+        ["node", "-e", node_script],
+        cwd=PROJECT_ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert proc.returncode == 0, proc.stderr or proc.stdout
+    return json.loads(proc.stdout)
+
+
+def _run_iterate_model_description(model: dict) -> str:
+    return _run_iterate_hook(function_name="modelDescription", payload={"model": model})
+
+
+def _run_iterate_filter_model_ids(models: list[dict], filter_name: str) -> list[str]:
+    return _run_iterate_hook(function_name="filterModelListIds", payload={"models": models, "filterName": filter_name})
+
+
+def _run_iterate_generation_jobs(payload: dict, *, capture_logs: bool = False) -> dict:
+    return _run_iterate_hook(function_name="buildIterateGenerationJobs", payload=payload, capture_logs=capture_logs)
+
+
+def _run_iterate_result_sort(jobs: list[dict], sort_mode: str) -> list[dict]:
+    return _run_iterate_hook(function_name="sortIterateResultJobs", payload={"jobs": jobs, "sortMode": sort_mode})
+
+
+def _run_save_raw_request_payload(job: dict) -> dict:
+    return _run_iterate_hook(function_name="saveRawRequestPayloadForJob", payload={"job": job})
+
+
+def test_iterate_prompt_builder_keeps_library_prompt_precomposed():
+    result = _run_iterate_prompt_builder(
+        {
+            "book": {
+                "title": "A Room with a View",
+                "author": "E. M. Forster",
+                "default_prompt": "A scene from the piazza",
+            },
+            "templateObj": {
+                "id": "alexandria-base-romantic-realism",
+                "name": "BASE 4 Romantic Realism",
+                "prompt_template": (
+                    "Book cover illustration only - no text. "
+                    "Centered medallion illustration: {SCENE}. "
+                    "The mood is {MOOD}. Era reference: {ERA}."
+                ),
+            },
+            "promptId": "alexandria-base-romantic-realism",
+            "customPrompt": (
+                "Book cover illustration only - no text. "
+                "Centered medallion illustration: {SCENE}. "
+                "The mood is {MOOD}. Era reference: {ERA}."
+            ),
+            "sceneVal": "Lucy Honeychurch on a Florentine terrace",
+            "moodVal": "classical, timeless, evocative",
+            "eraVal": "Edwardian Italy",
+            "style": {
+                "id": "romantic-sublime",
+                "label": "Romantic Sublime",
+                "modifier": "Paint in the lush Pre-Raphaelite tradition with jewel-toned palette, botanical richness, and visible brushwork.",
+            },
+        }
+    )
+
+    assert result["prompt"].startswith('Scene from "A Room with a View": ')
+    assert "Create a breathtaking legacy prompt." not in result["prompt"]
+    assert "Lucy Honeychurch on a Florentine terrace" in result["prompt"]
+    assert "Edwardian Italy" in result["prompt"]
+    assert "VISUAL STYLE:" in result["prompt"]
+    assert "lush Pre-Raphaelite tradition" in result["prompt"]
+    assert result["styleLabel"] == "BASE 4 Romantic Realism"
+    assert result["styleId"] == "none"
+    assert result["preservePromptText"] is True
+    assert result["libraryPromptId"] == "alexandria-base-romantic-realism"
+    assert result["composePrompt"] is False
+    assert result["backendPromptSource"] == "custom"
+
+
+def test_iterate_prompt_builder_truncates_library_style_modifier_before_scene_content():
+    result = _run_iterate_prompt_builder(
+        {
+            "book": {
+                "title": "Moby Dick",
+                "author": "Herman Melville",
+            },
+            "templateObj": {
+                "id": "alexandria-base-classical-devotion",
+                "name": "BASE 1 Classical Devotion",
+                "prompt_template": (
+                    'Book cover illustration only - no text. Scene: {SCENE}. '
+                    'Mood: {MOOD}. Era: {ERA}.'
+                ),
+            },
+            "promptId": "alexandria-base-classical-devotion",
+            "customPrompt": (
+                'Book cover illustration only - no text. Scene: {SCENE}. '
+                'Mood: {MOOD}. Era: {ERA}.'
+            ),
+            "sceneVal": "Captain Ahab on the Pequod amid a storm-dark sea with the white whale breaching nearby",
+            "moodVal": "furious, mythic, oceanic",
+            "eraVal": "19th-century whaling voyage",
+            "style": {
+                "id": "turner-sublime",
+                "label": "Turner Sublime",
+                "modifier": " ".join(["molten gold sky, storm-violet clouds, turbulent sea, dragged bristles, impasto spray"] * 40),
+            },
+            "variantNumber": 3,
+        }
+    )
+
+    assert result["prompt"].startswith('Scene from "Moby Dick": ')
+    assert "Captain Ahab on the Pequod" in result["prompt"]
+    assert "VISUAL STYLE:" in result["prompt"]
+    assert len(result["prompt"]) <= 1000
+
+
+def test_iterate_prompt_builder_keeps_legacy_style_diversifier_for_default_auto():
+    result = _run_iterate_prompt_builder(
+        {
+            "book": {
+                "title": "A Room with a View",
+                "author": "E. M. Forster",
+            },
+            "templateObj": None,
+            "promptId": "",
+            "customPrompt": "",
+            "sceneVal": "",
+            "moodVal": "",
+            "eraVal": "",
+            "style": {"id": "romantic-sublime", "label": "Romantic Sublime"},
+        }
+    )
+
+    assert result["prompt"].startswith('Scene from "A Room with a View": ')
+    assert "Create a breathtaking legacy prompt." in result["prompt"]
+    assert 'This illustration MUST depict a scene from "A Room with a View" by E. M. Forster.' in result["prompt"]
+    assert result["styleLabel"] == "Romantic Sublime"
+    assert result["styleId"] == "romantic-sublime"
+    assert result["preservePromptText"] is False
+    assert result["libraryPromptId"] == ""
+
+
+def test_iterate_prompt_builder_does_not_duplicate_title_anchor_when_title_is_already_first():
+    result = _run_iterate_prompt_builder(
+        {
+            "book": {
+                "title": "Emma",
+                "author": "Jane Austen",
+            },
+            "templateObj": {
+                "id": "alexandria-base-romantic-realism",
+                "name": "BASE 4 Romantic Realism",
+                "prompt_template": 'Scene from "{title}": Book cover illustration only - no text. Scene: {SCENE}.',
+            },
+            "promptId": "alexandria-base-romantic-realism",
+            "customPrompt": 'Scene from "{title}": Book cover illustration only - no text. Scene: {SCENE}.',
+            "sceneVal": "Emma Woodhouse in Hartfield",
+            "moodVal": "witty",
+            "eraVal": "Regency England",
+            "style": {"id": "romantic-sublime", "label": "Romantic Sublime"},
+        }
+    )
+
+    assert result["prompt"].startswith('Scene from "Emma":')
+    assert result["prompt"].count('Scene from "Emma":') == 1
+
+
+def test_iterate_prompt_builder_adds_title_anchor_even_when_scene_starts_with_protagonist_name():
+    result = _run_iterate_prompt_builder(
+        {
+            "book": {
+                "title": "Emma",
+                "author": "Jane Austen",
+            },
+            "templateObj": {
+                "id": "alexandria-base-romantic-realism",
+                "name": "BASE 4 Romantic Realism",
+                "prompt_template": "Book cover illustration only - no text. Scene: {SCENE}. Mood: {MOOD}. Era: {ERA}.",
+            },
+            "promptId": "alexandria-base-romantic-realism",
+            "customPrompt": "Book cover illustration only - no text. Scene: {SCENE}. Mood: {MOOD}. Era: {ERA}.",
+            "sceneVal": "Emma Woodhouse in Hartfield, greeting Harriet in the drawing room.",
+            "moodVal": "witty and observant",
+            "eraVal": "Regency England",
+            "style": {"id": "romantic-sublime", "label": "Romantic Sublime"},
+        }
+    )
+
+    assert result["prompt"].startswith('Scene from "Emma": ')
+    assert result["prompt"].count('Scene from "Emma":') == 1
+
+
+def test_iterate_prompt_builder_adds_variant_specific_composition_directives():
+    payload = {
+        "book": {
+            "title": "Moby Dick",
+            "author": "Herman Melville",
+        },
+        "templateObj": {
+            "id": "alexandria-wildcard-klimt-gold-leaf",
+            "name": "Klimt Gold Leaf",
+            "prompt_template": "Book cover illustration — no text, no lettering. Scene: {SCENE}. Mood: {MOOD}. Era: {ERA}.",
+        },
+        "promptId": "alexandria-wildcard-klimt-gold-leaf",
+        "customPrompt": "",
+        "sceneVal": "Captain Ahab on the Pequod deck at sunrise.",
+        "moodVal": "obsessive and windswept",
+        "eraVal": "19th-century Atlantic",
+        "style": {"id": "romantic-sublime", "label": "Romantic Sublime"},
+    }
+
+    variant_one = _run_iterate_prompt_builder({**payload, "variantNumber": 1})
+    variant_two = _run_iterate_prompt_builder({**payload, "variantNumber": 2})
+
+    assert "Keep all important figures, faces, hands, props, and horizon lines inside a centered crop-safe zone that will survive a later circular crop." in variant_one["prompt"]
+    assert "Keep all important figures, faces, hands, props, and horizon lines inside a centered crop-safe zone that will survive a later circular crop." in variant_two["prompt"]
+    assert "Extend the environment naturally to all four edges of the square canvas with painted scenery, not blank paper." in variant_one["prompt"]
+    assert "Express style only through brushwork, palette, costume, props, and environmental details inside the scene." in variant_one["prompt"]
+    assert "Do not draw any visible circle outline, border, ring, halo, medallion edge, wreath, floral surround, sunburst, radial rays, plaque, banner, decorative ornament, or lettering." in variant_one["prompt"]
+    assert "one centered primary subject" in variant_one["prompt"]
+    assert "mid-distance narrative staging" in variant_two["prompt"]
+    assert variant_one["prompt"] != variant_two["prompt"]
+
+
+def test_iterate_prompt_builder_strips_border_and_label_directions_from_prompt_text():
+    result = _run_iterate_prompt_builder(
+        {
+            "book": {
+                "title": "Moby Dick",
+                "author": "Herman Melville",
+            },
+            "templateObj": {
+                "id": "alexandria-wildcard-botanical-plate",
+                "name": "Botanical Plate",
+                "prompt_template": (
+                    "Book cover illustration — no text, no lettering. Scene: {SCENE}. "
+                    "STYLE: botanical precision with Latin labels in copperplate script, interlaced knotwork framing the scene, "
+                    "intricate geometric borders, gold outlines, Mucha-inspired decorative elegance, "
+                    "nature-integrated composition, ribbon banner, circular vignette composition, visible circle outline, "
+                    "floral surround, sunburst, radial rays, and no empty space. Mood: {MOOD}. Era: {ERA}."
+                ),
+            },
+            "promptId": "alexandria-wildcard-botanical-plate",
+            "customPrompt": "",
+            "sceneVal": "Captain Ahab at the prow of the Pequod under a blazing sunset.",
+            "moodVal": "obsessive and windswept",
+            "eraVal": "19th-century Atlantic",
+            "style": {"id": "romantic-sublime", "label": "Romantic Sublime"},
+            "variantNumber": 1,
+        }
+    )
+
+    lowered = result["prompt"].lower()
+    assert lowered.startswith('scene from "moby dick":')
+    assert "latin labels" not in lowered
+    assert "copperplate script" not in lowered
+    assert "knotwork framing the scene" not in lowered
+    assert "geometric borders" not in lowered
+    assert "gold outlines" not in lowered
+    assert "decorative elegance" not in lowered
+    assert "nature-integrated composition" not in lowered
+    assert "ribbon banner" not in lowered
+    assert "circular vignette composition" not in lowered
+    assert "no empty space" not in lowered
+    assert "extend the environment naturally to all four edges of the square canvas with painted scenery, not blank paper" in lowered
+    assert "style only through brushwork" in lowered
+    assert "do not draw any visible circle outline" in lowered
+    assert "floral surround" in lowered
+    assert "sunburst" in lowered
+    assert "radial rays" in lowered
+    assert "implied centered circle" not in lowered
+    assert "quiet outer corners" not in lowered
+
+
+def test_iterate_ui_defaults_use_ten_variants_and_auto_rotate_label():
+    result = _run_iterate_ui_defaults()
+
+    assert result["defaultVariantCount"] == 10
+    assert result["autoRotateLabel"] == "Auto-Rotate (Recommended)"
+
+
+def test_iterate_model_description_calls_out_nano_banana_2():
+    assert _run_iterate_model_description({"id": "openrouter/google/gemini-2.5-flash-image"}) == (
+        "Fast, lower-cost Nano Banana 2 tier for quick iterative runs."
+    )
+    assert _run_iterate_model_description({"id": "google/gemini-2.5-flash-image"}) == (
+        "Nano Banana 2 direct Google provider route."
+    )
+
+
+def test_iterate_nano_filter_includes_nano_banana_2_routes():
+    models = [
+        {"id": "openrouter/google/gemini-3-pro-image-preview"},
+        {"id": "openrouter/google/gemini-2.5-flash-image"},
+        {"id": "google/gemini-2.5-flash-image"},
+        {"id": "openrouter/openai/gpt-5-image"},
+    ]
+
+    assert _run_iterate_filter_model_ids(models, "nano") == [
+        "openrouter/google/gemini-3-pro-image-preview",
+        "openrouter/google/gemini-2.5-flash-image",
+        "google/gemini-2.5-flash-image",
+    ]
+
+
+def test_iterate_variant_summary_lines_are_single_line_and_compact():
+    lines = _run_iterate_variant_summary_lines(
+        [
+            {
+                "variant": 1,
+                "assignedTemplate": {"name": "BASE 4 — Romantic Realism"},
+                "assignedScene": "Gulliver wakes on the beach in Lilliput.",
+            }
+        ]
+    )
+
+    assert lines == ["Variant 1: Romantic Realism — Gulliver wakes on the beach in Lilliput."]
+    assert "\n" not in lines[0]
+
+
+def test_apply_prompt_placeholders_uses_depicted_prominently_for_protagonist_injection():
+    book = {
+        "title": "Emma",
+        "author": "Jane Austen",
+        "enrichment": {
+            "protagonist": "Emma Woodhouse",
+            "iconic_scenes": [
+                "Emma Woodhouse and Harriet Smith walking through the gardens of Hartfield at sunset."
+            ],
+        },
+    }
+    result = _run_iterate_apply_prompt_placeholders(
+        prompt_text="Book cover illustration — no text, no lettering. {SCENE}",
+        book=book,
+        scene_override="A lively drawing-room conversation at Hartfield during the afternoon.",
+    )
+
+    assert "Depicted prominently: Emma Woodhouse." in result
+    assert "main character shown" not in result.lower()
+    assert "main characters shown" not in result.lower()
+
+
+def test_validate_prompt_before_generation_allows_depicted_prominently_scene_text():
+    book = {
+        "title": "Emma",
+        "author": "Jane Austen",
+        "enrichment": {
+            "protagonist": "Emma Woodhouse",
+            "iconic_scenes": [
+                "A lively drawing-room conversation at Hartfield during the afternoon."
+            ],
+        },
+    }
+    prompt = _run_iterate_apply_prompt_placeholders(
+        prompt_text=(
+            "Book cover illustration — no text, no lettering. This illustration MUST depict the following "
+            "specific scene: {SCENE}. The mood is witty romantic self-discovery. Era reference: Regency England."
+        ),
+        book=book,
+        scene_override="A lively drawing-room conversation at Hartfield during the afternoon.",
+    )
+
+    validation = _run_iterate_hook(
+        function_name="validatePromptBeforeGeneration",
+        payload={"prompt": prompt, "book": book},
+    )
+
+    assert validation["ok"] is True
+    assert "Prompt still contains generic content in the first 320 characters." not in validation["errors"]
+
+
+def test_validate_prompt_before_generation_warns_when_title_is_missing_from_first_hundred_chars():
+    book = {
+        "title": "Emma",
+        "author": "Jane Austen",
+        "enrichment": {
+            "protagonist": "Emma Woodhouse",
+            "iconic_scenes": [
+                "Emma Woodhouse in Hartfield's drawing room."
+            ],
+        },
+    }
+    prompt = (
+        "Book cover illustration only - no text. "
+        "Painted with fine brushwork and layered composition for a literary classic. "
+        "Focus on a poised heroine in a domestic interior from Regency England."
+    )
+
+    validation = _run_iterate_hook(
+        function_name="validatePromptBeforeGeneration",
+        payload={"prompt": prompt, "book": book},
+    )
+
+    assert validation["ok"] is True
+    assert any('Book title "Emma" not found in first 100 chars' in warning for warning in validation["warnings"])
+
+
+def test_validate_prompt_before_generation_accepts_title_anchor_in_first_hundred_chars():
+    book = {
+        "title": "Emma",
+        "author": "Jane Austen",
+        "enrichment": {
+            "protagonist": "Emma Woodhouse",
+            "iconic_scenes": [
+                "Emma Woodhouse in Hartfield's drawing room."
+            ],
+        },
+    }
+    prompt = (
+        'Scene from "Emma": Book cover illustration only - no text. '
+        "Emma Woodhouse in Hartfield's drawing room."
+    )
+
+    validation = _run_iterate_hook(
+        function_name="validatePromptBeforeGeneration",
+        payload={"prompt": prompt, "book": book},
+    )
+
+    assert validation["ok"] is True
+    assert not any('Book title "Emma" not found in first 100 chars' in warning for warning in validation["warnings"])
+
+
+def test_iterate_generation_jobs_expand_variants_across_multiple_models():
+    result = _run_iterate_generation_jobs(
+        {
+            "bookId": 7,
+            "book": {
+                "title": "Gulliver's Travels",
+                "author": "Jonathan Swift",
+            },
+            "selectedModels": [
+                "nano-banana-pro",
+                "google/gemini-2.5-flash-image",
+            ],
+            "selectedCoverId": "cover-7",
+            "selectedCoverBookNumber": 7,
+            "variantEntries": [
+                {
+                    "variant": 1,
+                    "assignedScene": "Gulliver waking up on the beach in Lilliput.",
+                    "assignedMood": "astonished",
+                    "assignedEra": "18th century",
+                    "promptPayload": {
+                        "prompt": "Book cover illustration only - no text. Gulliver waking up on the beach in Lilliput.",
+                        "styleId": "romantic-realism",
+                        "styleLabel": "Romantic Realism",
+                        "promptSource": "library",
+                        "backendPromptSource": "custom",
+                        "composePrompt": False,
+                        "preservePromptText": True,
+                        "libraryPromptId": "alexandria-base-romantic-realism",
+                    },
+                },
+                {
+                    "variant": 2,
+                    "assignedScene": "Gulliver standing in the grand palace.",
+                    "assignedMood": "wry",
+                    "assignedEra": "18th century",
+                    "promptPayload": {
+                        "prompt": "Book cover illustration only - no text. Gulliver standing in the grand palace.",
+                        "styleId": "romantic-realism",
+                        "styleLabel": "Romantic Realism",
+                        "promptSource": "library",
+                        "backendPromptSource": "custom",
+                        "composePrompt": False,
+                        "preservePromptText": True,
+                        "libraryPromptId": "alexandria-base-romantic-realism",
+                    },
+                },
+            ],
+        }
+    )
+
+    jobs = result["jobs"]
+    assert result["validationError"] == ""
+    assert len(jobs) == 4
+    assert [job["variant"] for job in jobs] == [1, 1, 2, 2]
+    assert [job["model"] for job in jobs] == [
+        "nano-banana-pro",
+        "google/gemini-2.5-flash-image",
+        "nano-banana-pro",
+        "google/gemini-2.5-flash-image",
+    ]
+    assert len({str(job["batch_id"]) for job in jobs}) == 1
+
+
+def test_iterate_generation_jobs_emit_batch_style_summary_log():
+    captured = _run_iterate_generation_jobs(
+        {
+            "bookId": 7,
+            "book": {
+                "title": "Gulliver's Travels",
+                "author": "Jonathan Swift",
+            },
+            "selectedModels": ["nano-banana-pro"],
+            "selectedCoverId": "cover-7",
+            "selectedCoverBookNumber": 7,
+            "variantEntries": [
+                {
+                    "variant": 1,
+                    "assignedScene": "Gulliver waking up on the beach in Lilliput.",
+                    "assignedMood": "astonished",
+                    "assignedEra": "18th century",
+                    "promptPayload": {
+                        "prompt": "Book cover illustration only - no text. Gulliver waking up on the beach in Lilliput.",
+                        "styleId": "romantic-realism",
+                        "styleLabel": "Romantic Realism",
+                        "promptSource": "library",
+                        "backendPromptSource": "custom",
+                        "composePrompt": False,
+                        "preservePromptText": True,
+                        "libraryPromptId": "alexandria-base-romantic-realism",
+                    },
+                },
+                {
+                    "variant": 2,
+                    "assignedScene": "Gulliver standing in the grand palace.",
+                    "assignedMood": "wry",
+                    "assignedEra": "18th century",
+                    "promptPayload": {
+                        "prompt": "Book cover illustration only - no text. Gulliver standing in the grand palace.",
+                        "styleId": "gothic-atmosphere",
+                        "styleLabel": "Gothic Atmosphere",
+                        "promptSource": "library",
+                        "backendPromptSource": "custom",
+                        "composePrompt": False,
+                        "preservePromptText": True,
+                        "libraryPromptId": "alexandria-base-gothic-atmosphere",
+                    },
+                },
+            ],
+        },
+        capture_logs=True,
+    )
+
+    logs = captured["logs"]
+    assert any("[BATCH] Style assignments:" in row["message"] for row in logs)
+    assert any("alexandria-base-romantic-realism" in row["message"] for row in logs)
+    assert any("alexandria-base-gothic-atmosphere" in row["message"] for row in logs)
+
+
+def test_iterate_result_sort_groups_cards_by_model_then_variant():
+    jobs = _run_iterate_result_sort(
+        [
+            {"id": "c", "model": "nano-banana-pro", "variant": 2, "created_at": "2026-03-11T10:00:03Z"},
+            {"id": "a", "model": "google/gemini-2.5-flash-image", "variant": 2, "created_at": "2026-03-11T10:00:01Z"},
+            {"id": "d", "model": "nano-banana-pro", "variant": 1, "created_at": "2026-03-11T10:00:04Z"},
+            {"id": "b", "model": "google/gemini-2.5-flash-image", "variant": 1, "created_at": "2026-03-11T10:00:02Z"},
+        ],
+        "model",
+    )
+
+    assert [job["id"] for job in jobs] == ["b", "a", "d", "c"]
+
+
+def test_save_raw_request_payload_uses_display_variant_without_selector_variant():
+    payload = _run_save_raw_request_payload(
+        {
+            "variant": 3,
+            "style_label": "Romantic Realism",
+            "model": "nano-banana-pro",
+            "results_json": json.dumps(
+                {
+                    "result": {
+                        "job_id": "backend-job-7",
+                        "variant": 1,
+                        "raw_art_path": "output/raw_art/7/job-7_variant_1.png",
+                        "saved_composited_path": "output/saved_composites/7/job-7_variant_1.jpg",
+                    }
+                }
+            ),
+        }
+    )
+
+    assert payload["job_id"] == "backend-job-7"
+    assert payload["display_variant"] == 3
+    assert payload["style_label"] == "Romantic Realism"
+    assert payload["expected_model"] == "nano-banana-pro"
+    assert "expected_variant" not in payload
+
+
+def test_save_raw_button_state_marks_saved_drive_uploads_as_openable():
+    state = _run_iterate_hook(
+        function_name="saveRawButtonState",
+        payload={
+            "job": {
+                "save_raw_status": "saved",
+                "save_raw_drive_url": "https://drive.google.com/drive/folders/example",
+            },
+        },
+    )
+
+    assert state["label"] == "✓ Saved"
+    assert state["driveUrl"] == "https://drive.google.com/drive/folders/example"
+    assert state["status"] == "saved"
+    assert "Click to open" in state["title"]
+
+
+def test_resolve_composite_preview_sources_prefers_saved_composite_over_tmp_image_path():
+    result = _run_iterate_hook(
+        function_name="resolveCompositePreviewSources",
+        payload={
+            "job": {
+                "id": "job-7",
+                "completed_at": "2026-03-19T12:00:00Z",
+                "results_json": json.dumps(
+                    {
+                        "result": {
+                            "image_path": "tmp/generated/7/model/variant_1.png",
+                            "saved_composited_path": "Output Covers/saved_composites/7/job-7_variant_1.jpg",
+                            "composited_path": "Output Covers/saved_composites/7/job-7_variant_1.jpg",
+                        }
+                    }
+                ),
+            },
+        },
+    )
+
+    assert result[0].startswith("/api/thumbnail?path=Output+Covers%2Fsaved_composites%2F7%2Fjob-7_variant_1.jpg")
+    assert all("tmp%2Fgenerated" not in item for item in result)
+
+
+def test_resolve_preview_sources_prefers_raw_art_path_over_tmp_generated_path():
+    result = _run_iterate_hook(
+        function_name="resolvePreviewSources",
+        payload={
+            "job": {
+                "id": "job-8",
+                "completed_at": "2026-03-19T12:00:00Z",
+                "results_json": json.dumps(
+                    {
+                        "result": {
+                            "image_path": "tmp/generated/8/model/variant_1.png",
+                            "raw_art_path": "Output Covers/raw_art/8/job-8_variant_1.png",
+                            "saved_composited_path": "Output Covers/saved_composites/8/job-8_variant_1.jpg",
+                        }
+                    }
+                ),
+            },
+            "preferRaw": True,
+        },
+    )
+
+    assert result[0].startswith("/api/thumbnail?path=Output+Covers%2Fraw_art%2F8%2Fjob-8_variant_1.png")
+    assert all("tmp%2Fgenerated" not in item for item in result)
+
+
+def test_iterate_scene_pool_filters_generic_enrichment_and_uses_prompt_context():
+    result = _run_iterate_hook(
+        function_name="buildScenePool",
+        payload={
+            "title": "Emma",
+            "author": "Jane Austen",
+            "enrichment": {
+                "iconic_scenes": [
+                    "Iconic turning point from Emma",
+                    "Emma Woodhouse insulting Miss Bates during the Box Hill picnic",
+                ],
+            },
+            "prompt_context": {
+                "scene_pool": [
+                    "Emma Woodhouse standing in Hartfield's drawing room overlooking Highbury",
+                ],
+            },
+        },
+    )
+
+    assert "Iconic turning point from Emma" not in result
+    assert result[0].startswith("Emma Woodhouse standing in Hartfield")
+
+
+def test_iterate_expanded_scene_pool_reaches_ten_unique_scenes_for_sparse_books():
+    result = _run_iterate_hook(
+        function_name="buildExpandedScenePool",
+        payload={
+            "book": {
+                "title": "The Island Voyage",
+                "author": "Anon",
+                "prompt_context": {
+                    "setting": "a wind-beaten island observatory",
+                },
+                "enrichment": {
+                    "iconic_scenes": [
+                        "The navigator enters the wind-beaten island observatory",
+                    ],
+                    "setting_primary": "a wind-beaten island observatory",
+                    "emotional_tone": "storm-charged wonder",
+                },
+            },
+            "minimumCount": 10,
+        },
+    )
+
+    assert len(result) == 10
+    assert len(set(result)) == 10
+    assert all("wind-beaten island observatory" in scene.lower() for scene in result[1:])
+    assert all(
+        generic not in " ".join(result).lower()
+        for generic in ["at dawn", "at dusk", "under stormlight", "by candlelight", "in solemn stillness"]
+    )
+    assert all(
+        ("island voyage" in scene.lower()) or ("wind-beaten island observatory" in scene.lower())
+        for scene in result
+    )
+
+
+def test_iterate_wildcard_rotation_changes_across_days():
+    prompts = [
+        {"id": "alexandria-wildcard-illuminated-manuscript", "name": "WILDCARD 3 — Illuminated Manuscript", "tags": ["alexandria", "wildcard"]},
+        {"id": "alexandria-wildcard-painterly-soft", "name": "Painterly Soft Brushwork", "tags": ["alexandria", "wildcard"]},
+        {"id": "alexandria-wildcard-temple-of-knowledge", "name": "WILDCARD 5 — Temple of Knowledge", "tags": ["alexandria", "wildcard"]},
+        {"id": "alexandria-wildcard-painterly-detailed", "name": "Painterly Hyper-Detailed", "tags": ["alexandria", "wildcard"]},
+        {"id": "alexandria-wildcard-klimt-gold-leaf", "name": "WILDCARD 26 — Klimt Gold Leaf", "tags": ["alexandria", "wildcard"]},
+    ]
+    book = {"title": "The Gospel of Thomas", "author": "Unknown", "genre": "religious"}
+
+    first = _run_iterate_hook(
+        function_name="suggestedWildcardPromptForBookAtDate",
+        payload={"book": book, "referenceDate": "2026-03-10T00:00:00.000Z"},
+        prompts=prompts,
+    )
+    second = _run_iterate_hook(
+        function_name="suggestedWildcardPromptForBookAtDate",
+        payload={"book": book, "referenceDate": "2026-03-11T00:00:00.000Z"},
+        prompts=prompts,
+    )
+
+    assert first["id"] != second["id"]
+
+
+def test_iterate_wildcard_rotation_pool_excludes_brittle_graphic_styles_for_auto_rotate():
+    prompts = [
+        {"id": "alexandria-wildcard-pre-raphaelite-garden", "name": "WILDCARD 2 — Pre-Raphaelite Garden", "tags": ["alexandria", "wildcard", "pre-raphaelite-garden", "romantic"]},
+        {"id": "alexandria-wildcard-vintage-travel-poster", "name": "Vintage Travel Poster", "tags": ["alexandria", "wildcard", "travel-poster", "graphic", "flat-color"]},
+        {"id": "alexandria-wildcard-soviet-constructivist", "name": "Soviet Constructivist", "tags": ["alexandria", "wildcard", "soviet-constructivist", "graphic"]},
+        {"id": "alexandria-wildcard-painterly-soft", "name": "Painterly Soft Brushwork", "tags": ["alexandria", "wildcard"]},
+        {"id": "alexandria-wildcard-pre-raphaelite-dream", "name": "WILDCARD 23 — Pre-Raphaelite Dream", "tags": ["alexandria", "wildcard"]},
+        {"id": "alexandria-wildcard-impressionist-plein-air", "name": "Impressionist Plein Air", "tags": ["alexandria", "wildcard"]},
+        {"id": "alexandria-wildcard-art-nouveau-poster", "name": "Art Nouveau Poster", "tags": ["alexandria", "wildcard", "graphic"]},
+    ]
+
+    pool = _run_iterate_hook(
+        function_name="buildWildcardRotationPoolForBook",
+        payload={
+            "book": {"title": "Emma", "author": "Jane Austen", "genre": "literature"},
+        },
+        prompts=prompts,
+    )
+
+    assert "alexandria-wildcard-vintage-travel-poster" not in pool
+    assert "alexandria-wildcard-soviet-constructivist" not in pool
+    assert "alexandria-wildcard-pre-raphaelite-garden" in pool
+    assert "alexandria-wildcard-impressionist-plein-air" in pool
+
+
+def test_iterate_variant_prompt_plan_skips_excluded_graphic_prompts_for_emma_auto_rotate():
+    prompts = [
+        {"id": "alexandria-base-romantic-realism", "name": "BASE 4 — Romantic Realism", "tags": ["alexandria", "base"]},
+        {"id": "alexandria-wildcard-pre-raphaelite-garden", "name": "WILDCARD 2 — Pre-Raphaelite Garden", "tags": ["alexandria", "wildcard", "pre-raphaelite-garden", "romantic"]},
+        {"id": "alexandria-wildcard-vintage-travel-poster", "name": "Vintage Travel Poster", "tags": ["alexandria", "wildcard", "travel-poster", "graphic", "flat-color"]},
+        {"id": "alexandria-wildcard-soviet-constructivist", "name": "Soviet Constructivist", "tags": ["alexandria", "wildcard", "soviet-constructivist", "graphic"]},
+        {"id": "alexandria-wildcard-painterly-soft", "name": "Painterly Soft Brushwork", "tags": ["alexandria", "wildcard"]},
+        {"id": "alexandria-wildcard-painterly-detailed", "name": "Painterly Hyper-Detailed", "tags": ["alexandria", "wildcard"]},
+        {"id": "alexandria-wildcard-pre-raphaelite-dream", "name": "WILDCARD 23 — Pre-Raphaelite Dream", "tags": ["alexandria", "wildcard"]},
+        {"id": "alexandria-wildcard-impressionist-plein-air", "name": "Impressionist Plein Air", "tags": ["alexandria", "wildcard"]},
+    ]
+
+    assignments = _run_iterate_hook(
+        function_name="buildVariantPromptAssignments",
+        payload={
+            "book": {"title": "Emma", "author": "Jane Austen", "genre": "literature"},
+            "variantCount": 6,
+            "referenceDate": "2026-03-11T00:00:00.000Z",
+        },
+        prompts=prompts,
+        random_values=[0.91, 0.72, 0.18, 0.44, 0.63, 0.27, 0.55, 0.08],
+    )
+
+    prompt_ids = [row["promptId"] for row in assignments]
+    assert "alexandria-wildcard-vintage-travel-poster" not in prompt_ids
+    assert "alexandria-wildcard-soviet-constructivist" not in prompt_ids
+    assert len(prompt_ids) == 6
+    assert len(set(prompt_ids)) == 6
+
+
+def test_iterate_variant_prompt_plan_uses_zero_repeat_shuffle_assignments():
+    prompts = [
+        {"id": "alexandria-base-romantic-realism", "name": "BASE 4 — Romantic Realism", "tags": ["alexandria", "base"]},
+        {"id": "alexandria-base-classical-devotion", "name": "BASE 1 — Classical Devotion", "tags": ["alexandria", "base"]},
+        {"id": "alexandria-base-gothic-atmosphere", "name": "BASE 2 — Gothic Atmosphere", "tags": ["alexandria", "base"]},
+        {"id": "alexandria-base-esoteric-mysticism", "name": "BASE 5 — Esoteric Mysticism", "tags": ["alexandria", "base"]},
+        {"id": "alexandria-base-philosophical-gravitas", "name": "BASE 3 — Philosophical Gravitas", "tags": ["alexandria", "base"]},
+        {"id": "alexandria-wildcard-pre-raphaelite-garden", "name": "WILDCARD 2 — Pre-Raphaelite Garden", "tags": ["alexandria", "wildcard"]},
+        {"id": "alexandria-wildcard-painterly-soft", "name": "Painterly Soft Brushwork", "tags": ["alexandria", "wildcard"]},
+        {"id": "alexandria-wildcard-romantic-landscape", "name": "WILDCARD 10 — Romantic Landscape", "tags": ["alexandria", "wildcard"]},
+        {"id": "alexandria-wildcard-painterly-detailed", "name": "Painterly Hyper-Detailed", "tags": ["alexandria", "wildcard"]},
+        {"id": "alexandria-wildcard-pre-raphaelite-dream", "name": "WILDCARD 23 — Pre-Raphaelite Dream", "tags": ["alexandria", "wildcard"]},
+    ]
+    assignments = _run_iterate_hook(
+        function_name="buildVariantPromptAssignments",
+        payload={
+            "book": {"title": "Emma", "author": "Jane Austen", "genre": "literature"},
+            "variantCount": 4,
+            "referenceDate": "2026-03-11T00:00:00.000Z",
+        },
+        prompts=prompts,
+        random_values=[0.81, 0.35, 0.62, 0.14, 0.55, 0.09, 0.73, 0.21],
+    )
+
+    assert [row["variant"] for row in assignments] == [1, 2, 3, 4]
+    assert [row["promptId"] for row in assignments] == [
+        "alexandria-base-romantic-realism",
+        "alexandria-base-classical-devotion",
+        "alexandria-base-gothic-atmosphere",
+        "alexandria-base-esoteric-mysticism",
+    ]
+
+
+def test_iterate_variant_prompt_plan_falls_back_to_literature_defaults_for_unknown_genre():
+    assignments = _run_iterate_hook(
+        function_name="buildVariantPromptAssignments",
+        payload={
+            "book": {"title": "Unknown Treatise", "author": "Anon", "genre": "uncategorized"},
+            "variantCount": 3,
+            "referenceDate": "2026-03-11T00:00:00.000Z",
+        },
+        prompts=[],
+        random_values=[0.77, 0.22, 0.63, 0.11, 0.48],
+    )
+
+    prompt_ids = [row["promptId"] for row in assignments]
+    assert prompt_ids == [
+        "alexandria-base-romantic-realism",
+        "alexandria-base-classical-devotion",
+        "alexandria-base-gothic-atmosphere",
+    ]
+
+
+def test_iterate_variant_prompt_plan_uses_all_five_bases_and_five_wildcards_for_ten_variants():
+    prompts = [
+        {"id": "alexandria-base-romantic-realism", "name": "BASE 4 — Romantic Realism", "tags": ["alexandria", "base"]},
+        {"id": "alexandria-base-classical-devotion", "name": "BASE 1 — Classical Devotion", "tags": ["alexandria", "base"]},
+        {"id": "alexandria-base-gothic-atmosphere", "name": "BASE 2 — Gothic Atmosphere", "tags": ["alexandria", "base"]},
+        {"id": "alexandria-base-esoteric-mysticism", "name": "BASE 5 — Esoteric Mysticism", "tags": ["alexandria", "base"]},
+        {"id": "alexandria-base-philosophical-gravitas", "name": "BASE 3 — Philosophical Gravitas", "tags": ["alexandria", "base"]},
+        {"id": "alexandria-wildcard-pre-raphaelite-garden", "name": "WILDCARD 2 — Pre-Raphaelite Garden", "tags": ["alexandria", "wildcard"]},
+        {"id": "alexandria-wildcard-painterly-soft", "name": "Painterly Soft Brushwork", "tags": ["alexandria", "wildcard"]},
+        {"id": "alexandria-wildcard-maritime-chart", "name": "WILDCARD 9 — Maritime Chart", "tags": ["alexandria", "wildcard"]},
+        {"id": "alexandria-wildcard-painterly-detailed", "name": "Painterly Hyper-Detailed", "tags": ["alexandria", "wildcard"]},
+        {"id": "alexandria-wildcard-edo-meets-alexandria", "name": "WILDCARD 18 — Edo Meets Alexandria", "tags": ["alexandria", "wildcard"]},
+    ]
+    assignments = _run_iterate_hook(
+        function_name="buildVariantPromptAssignments",
+        payload={
+            "book": {"title": "Gulliver's Travels", "author": "Jonathan Swift", "genre": "adventure"},
+            "variantCount": 10,
+            "referenceDate": "2026-03-11T00:00:00.000Z",
+        },
+        prompts=prompts,
+        random_values=[0.91, 0.12, 0.73, 0.28, 0.64, 0.05, 0.82, 0.17, 0.58, 0.34, 0.49],
+    )
+
+    prompt_ids = [row["promptId"] for row in assignments]
+    assert len(prompt_ids) == 10
+    assert len(set(prompt_ids)) == 10
+    assert prompt_ids[:5] == [
+        "alexandria-base-romantic-realism",
+        "alexandria-base-classical-devotion",
+        "alexandria-base-gothic-atmosphere",
+        "alexandria-base-esoteric-mysticism",
+        "alexandria-base-philosophical-gravitas",
+    ]
+    assert {
+        "alexandria-base-romantic-realism",
+        "alexandria-base-classical-devotion",
+        "alexandria-base-gothic-atmosphere",
+        "alexandria-base-esoteric-mysticism",
+        "alexandria-base-philosophical-gravitas",
+    }.issubset(set(prompt_ids))
+    assert {
+        "alexandria-wildcard-pre-raphaelite-garden",
+        "alexandria-wildcard-painterly-soft",
+        "alexandria-wildcard-maritime-chart",
+        "alexandria-wildcard-painterly-detailed",
+        "alexandria-wildcard-edo-meets-alexandria",
+    }.issubset(set(prompt_ids[5:]))
+
+
+def test_iterate_variant_prompt_plan_same_book_can_shuffle_to_different_orders():
+    prompts = [
+        {"id": "alexandria-base-romantic-realism", "name": "BASE 4 — Romantic Realism", "tags": ["alexandria", "base"]},
+        {"id": "alexandria-base-classical-devotion", "name": "BASE 1 — Classical Devotion", "tags": ["alexandria", "base"]},
+        {"id": "alexandria-base-gothic-atmosphere", "name": "BASE 2 — Gothic Atmosphere", "tags": ["alexandria", "base"]},
+        {"id": "alexandria-base-esoteric-mysticism", "name": "BASE 5 — Esoteric Mysticism", "tags": ["alexandria", "base"]},
+        {"id": "alexandria-base-philosophical-gravitas", "name": "BASE 3 — Philosophical Gravitas", "tags": ["alexandria", "base"]},
+        {"id": "alexandria-wildcard-pre-raphaelite-garden", "name": "WILDCARD 2 — Pre-Raphaelite Garden", "tags": ["alexandria", "wildcard"]},
+        {"id": "alexandria-wildcard-painterly-soft", "name": "Painterly Soft Brushwork", "tags": ["alexandria", "wildcard"]},
+        {"id": "alexandria-wildcard-maritime-chart", "name": "WILDCARD 9 — Maritime Chart", "tags": ["alexandria", "wildcard"]},
+        {"id": "alexandria-wildcard-painterly-detailed", "name": "Painterly Hyper-Detailed", "tags": ["alexandria", "wildcard"]},
+        {"id": "alexandria-wildcard-edo-meets-alexandria", "name": "WILDCARD 18 — Edo Meets Alexandria", "tags": ["alexandria", "wildcard"]},
+    ]
+    payload = {
+        "book": {"title": "Gulliver's Travels", "author": "Jonathan Swift", "genre": "adventure"},
+        "variantCount": 8,
+        "referenceDate": "2026-03-11T00:00:00.000Z",
+    }
+    first = _run_iterate_hook(
+        function_name="buildVariantPromptAssignments",
+        payload=payload,
+        prompts=prompts,
+        random_values=[0.91, 0.12, 0.73, 0.28, 0.64, 0.05],
+    )
+    second = _run_iterate_hook(
+        function_name="buildVariantPromptAssignments",
+        payload=payload,
+        prompts=prompts,
+        random_values=[0.11, 0.82, 0.24, 0.67, 0.39, 0.95],
+    )
+
+    first_ids = [row["promptId"] for row in first]
+    second_ids = [row["promptId"] for row in second]
+    assert first_ids[:5] == second_ids[:5] == [
+        "alexandria-base-romantic-realism",
+        "alexandria-base-classical-devotion",
+        "alexandria-base-gothic-atmosphere",
+        "alexandria-base-esoteric-mysticism",
+        "alexandria-base-philosophical-gravitas",
+    ]
+    assert first_ids[5:] != second_ids[5:]
+    assert len(set(first_ids)) == 8
+    assert len(set(second_ids)) == 8
+
+
+def test_iterate_variant_payloads_auto_rotate_assign_distinct_scenes():
+    prompts = [
+        {"id": "alexandria-base-romantic-realism", "name": "BASE 4 — Romantic Realism", "prompt_template": "Book cover illustration only - no text. Scene: {SCENE}. Mood: {MOOD}. Era: {ERA}.", "tags": ["alexandria", "base"]},
+        {"id": "alexandria-wildcard-pre-raphaelite-garden", "name": "WILDCARD 2 — Pre-Raphaelite Garden", "prompt_template": "Book cover illustration only - no text. Scene: {SCENE}. Mood: {MOOD}. Era: {ERA}.", "tags": ["alexandria", "wildcard"]},
+        {"id": "alexandria-wildcard-painterly-soft", "name": "Painterly Soft Brushwork", "prompt_template": "Book cover illustration only - no text. Scene: {SCENE}. Mood: {MOOD}. Era: {ERA}.", "tags": ["alexandria", "wildcard"]},
+        {"id": "alexandria-wildcard-romantic-landscape", "name": "WILDCARD 10 — Romantic Landscape", "prompt_template": "Book cover illustration only - no text. Scene: {SCENE}. Mood: {MOOD}. Era: {ERA}.", "tags": ["alexandria", "wildcard"]},
+        {"id": "alexandria-wildcard-painterly-detailed", "name": "Painterly Hyper-Detailed", "prompt_template": "Book cover illustration only - no text. Scene: {SCENE}. Mood: {MOOD}. Era: {ERA}.", "tags": ["alexandria", "wildcard"]},
+        {"id": "alexandria-wildcard-pre-raphaelite-dream", "name": "WILDCARD 23 — Pre-Raphaelite Dream", "prompt_template": "Book cover illustration only - no text. Scene: {SCENE}. Mood: {MOOD}. Era: {ERA}.", "tags": ["alexandria", "wildcard"]},
+    ]
+    result = _run_iterate_variant_payloads(
+        {
+            "book": {
+                "title": "Gulliver's Travels",
+                "author": "Jonathan Swift",
+                "genre": "adventure",
+                "enrichment": {
+                    "iconic_scenes": [
+                        "Gulliver wakes on the beach bound by hundreds of tiny ropes while Lilliputians climb over him",
+                        "Gulliver stands in the grand palace of the Emperor of Lilliput while courtiers stare upward",
+                        "Gulliver is carried by Glumdalclitch through the fields of Brobdingnag",
+                        "Gulliver converses with the King of Brobdingnag on a massive throne",
+                    ],
+                    "emotional_tone": "satirical wonder with unease",
+                    "era": "18th-century voyage literature",
+                },
+            },
+            "variantCount": 4,
+            "promptId": "",
+            "customPrompt": "",
+            "sceneVal": "",
+            "moodVal": "",
+            "eraVal": "",
+        },
+        prompts=prompts,
+    )
+
+    scenes = [str(entry["assignedScene"]) for entry in result["entries"]]
+    assert len(scenes) == 4
+    assert len(set(scenes)) == 4
+
+
+def test_iterate_variant_payloads_log_zero_repeat_style_rotation():
+    prompts = [
+        {"id": "alexandria-base-romantic-realism", "name": "BASE 4 — Romantic Realism", "prompt_template": "Book cover illustration only - no text. Scene: {SCENE}. Mood: {MOOD}. Era: {ERA}.", "tags": ["alexandria", "base"]},
+        {"id": "alexandria-base-classical-devotion", "name": "BASE 1 — Classical Devotion", "prompt_template": "Book cover illustration only - no text. Scene: {SCENE}. Mood: {MOOD}. Era: {ERA}.", "tags": ["alexandria", "base"]},
+        {"id": "alexandria-base-gothic-atmosphere", "name": "BASE 2 — Gothic Atmosphere", "prompt_template": "Book cover illustration only - no text. Scene: {SCENE}. Mood: {MOOD}. Era: {ERA}.", "tags": ["alexandria", "base"]},
+        {"id": "alexandria-base-esoteric-mysticism", "name": "BASE 5 — Esoteric Mysticism", "prompt_template": "Book cover illustration only - no text. Scene: {SCENE}. Mood: {MOOD}. Era: {ERA}.", "tags": ["alexandria", "base"]},
+        {"id": "alexandria-base-philosophical-gravitas", "name": "BASE 3 — Philosophical Gravitas", "prompt_template": "Book cover illustration only - no text. Scene: {SCENE}. Mood: {MOOD}. Era: {ERA}.", "tags": ["alexandria", "base"]},
+        {"id": "alexandria-wildcard-pre-raphaelite-garden", "name": "WILDCARD 2 — Pre-Raphaelite Garden", "prompt_template": "Book cover illustration only - no text. Scene: {SCENE}. Mood: {MOOD}. Era: {ERA}.", "tags": ["alexandria", "wildcard"]},
+        {"id": "alexandria-wildcard-painterly-soft", "name": "Painterly Soft Brushwork", "prompt_template": "Book cover illustration only - no text. Scene: {SCENE}. Mood: {MOOD}. Era: {ERA}.", "tags": ["alexandria", "wildcard"]},
+        {"id": "alexandria-wildcard-romantic-landscape", "name": "WILDCARD 10 — Romantic Landscape", "prompt_template": "Book cover illustration only - no text. Scene: {SCENE}. Mood: {MOOD}. Era: {ERA}.", "tags": ["alexandria", "wildcard"]},
+    ]
+    captured = _run_iterate_variant_payloads(
+        {
+            "book": {
+                "title": "Emma",
+                "author": "Jane Austen",
+                "genre": "literature",
+                "enrichment": {
+                    "iconic_scenes": [
+                        "Emma and Harriet walking through the Hartfield gardens in late afternoon light",
+                        "Emma observing the ballroom at the Crown Inn as couples dance",
+                        "Emma seated in the drawing room at Hartfield during a lively visit",
+                        "Emma crossing the village lane with Mr. Knightley in conversation",
+                    ],
+                    "emotional_tone": "witty romantic self-discovery",
+                    "era": "Regency England",
+                },
+            },
+            "variantCount": 4,
+            "promptId": "",
+            "customPrompt": "",
+            "sceneVal": "",
+            "moodVal": "",
+            "eraVal": "",
+        },
+        prompts=prompts,
+        capture_logs=True,
+        random_values=[0.81, 0.35, 0.62, 0.14, 0.55, 0.09, 0.73, 0.21],
+    )
+
+    result = captured["result"]
+    logs = captured["logs"]
+    prompt_ids = [entry["assignedPromptId"] for entry in result["entries"]]
+    assert len(prompt_ids) == 4
+    assert len(set(prompt_ids)) == 4
+    assert any("[STYLE-ROTATION] ✅" in row["message"] for row in logs)
+
+
+def test_iterate_style_uniqueness_assertion_reports_repeats():
+    captured = _run_iterate_hook(
+        function_name="assertBatchStyleUniqueness",
+        payload={
+            "entries": [
+                {"variant": 1, "assignedPromptId": "alexandria-base-romantic-realism"},
+                {"variant": 2, "assignedPromptId": "alexandria-base-romantic-realism"},
+                {"variant": 3, "assignedPromptId": "alexandria-wildcard-painterly-soft"},
+            ],
+        },
+        capture_logs=True,
+    )
+
+    assert captured["result"]["unique"] == 2
+    assert captured["result"]["total"] == 3
+    assert captured["result"]["repeats"] == {"alexandria-base-romantic-realism": 2}
+    assert any("[STYLE-ROTATION] ❌" in row["message"] for row in captured["logs"])
+
+
+def test_iterate_variant_payloads_resolve_legacy_prompt_id_aliases():
+    prompts = [
+        {
+            "id": "alexandria-wildcard-antique-map",
+            "name": "Antique Map",
+            "prompt_template": "Book cover illustration only - no text. Scene: {SCENE}. Mood: {MOOD}. Era: {ERA}.",
+            "tags": ["alexandria", "wildcard"],
+        },
+    ]
+    result = _run_iterate_variant_payloads(
+        {
+            "book": {
+                "title": "Gulliver's Travels",
+                "author": "Jonathan Swift",
+                "genre": "adventure",
+            },
+            "variantCount": 1,
+            "promptId": "alexandria-wildcard-antique-map-illustration",
+            "customPrompt": "",
+            "sceneVal": "Gulliver wakes on the beach bound by hundreds of tiny ropes while Lilliputians climb over him",
+            "moodVal": "satirical wonder with unease",
+            "eraVal": "18th-century voyage literature",
+        },
+        prompts=prompts,
+    )
+
+    assert result["missingPromptIds"] == []
+    assert result["entries"][0]["assignedPromptId"] == "alexandria-wildcard-antique-map"
+    assert result["entries"][0]["assignedTemplate"]["id"] == "alexandria-wildcard-antique-map"
+    assert result["entries"][0]["promptPayload"]["libraryPromptId"] == "alexandria-wildcard-antique-map"
+
+
+def test_iterate_science_genre_maps_to_scientific_wildcards():
+    prompts = [
+        {"id": "alexandria-wildcard-naturalist-field-drawing", "name": "Naturalist Field Drawing", "tags": ["alexandria", "wildcard"]},
+        {"id": "alexandria-wildcard-painterly-soft", "name": "Painterly Soft Brushwork", "tags": ["alexandria", "wildcard"]},
+        {"id": "alexandria-wildcard-painterly-detailed", "name": "Painterly Hyper-Detailed", "tags": ["alexandria", "wildcard"]},
+        {"id": "alexandria-wildcard-antique-map", "name": "Antique Map", "tags": ["alexandria", "wildcard"]},
+    ]
+    book = {"title": "On the Origin of Species", "author": "Charles Darwin", "genre": "science"}
+
+    selected = _run_iterate_hook(
+        function_name="suggestedWildcardPromptForBookAtDate",
+        payload={"book": book, "referenceDate": "2026-03-11T00:00:00.000Z"},
+        prompts=prompts,
+    )
+
+    assert selected["id"] in {prompt["id"] for prompt in prompts}
+
+
+def test_iterate_short_real_name_is_not_generic():
+    result = _run_iterate_hook(function_name="isGenericContent", payload="Eve")
+    assert result is False

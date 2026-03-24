@@ -1,0 +1,23 @@
+Hey Tim, thanks for coming up to $500. Before I give you a final number, I want to make sure I fully understand what you need because the spec doc covers a lot of ground and I have some questions that will directly affect how long this takes.
+
+So here's my understanding of what you want. You have 211 biblical and apocryphal titles. No pre-designed covers exist for them, unlike the classics which had professionally designed PDFs with the gold frame already built in. You want a tool where you pick a title, click generate, and get a complete print-ready book cover with the correct text, an AI illustration, and a layout that works for Ingram Spark. The tool should reuse the existing generation pipeline, prompt system, Drive sync, and UI from the current app.
+
+The new pieces are: a reusable cover template (front + spine + back), a text placement engine that handles all 211 titles without manual work, enrichment data for the biblical catalog, a new prompt library with styles that fit biblical content, and the assembly to put it all together.
+
+I have a few questions before I can properly scope this.
+
+First, the template design. This is the biggest unknown for me right now. The classics had a professional designer create that navy and gold look with the ornamental scrollwork frame in Illustrator. For the biblical series, do you have any visual reference or mockup of what you want it to look like? Do you want the same navy and gold style as the classics? A different color scheme? A different frame shape? Or are you leaving the entire visual identity up to me? This matters a lot because designing a cover template from scratch and coding a cover template from a given design are two very different things. If you can share even a rough sketch or a few examples of book covers you like, that would save a lot of back and forth.
+
+Second, the metadata. The spec mentions a 753-page PDF with all the title information. Can you send that data as a JSON or CSV instead of a PDF? Parsing 753 pages of structured data from a PDF is doable but messy and error-prone. If you already have that data in a spreadsheet or structured format somewhere, that would save me a couple days of extraction and cleanup work. If not, I can parse the PDF but just know that adds time for validation.
+
+Third, dimensions. For Ingram Spark, the cover dimensions depend on the trim size and page count. Are all 211 books the same trim size? And do you have page counts for each title so I can calculate spine widths? Or should I use a fixed spine width for now?
+
+Fourth, the back cover. Some of the descriptions in the spec sound like they vary a lot in length, from 3 short paragraphs to 6 plus paragraphs with bullet lists. What should happen when the text overflows? Shrink the font? Truncate? Or should I assume the text always fits because you will adjust it?
+
+Fifth, the assembly. For the classics, we had the PDF source files with the Im0 layer that we could work with. For the new biblical template, since we are creating it from scratch, the compositor will be much simpler. We control the template so we just render text, render illustration, layer them together. No Im0 extraction, no SMask, no 3-book diff needed. Just confirming you agree with that.
+
+Now on the broader topic. I want to be honest with you about something. The current codebase works but it has some structural issues that will make adding new features harder over time. The main server file is over 17,000 lines with everything in one place, the web server, all 88 API endpoints, the job worker, the generation pipeline, the compositor, Drive sync, file serving, everything. There is no framework, just raw HTTP handling with manual URL parsing. The test suite has 408 tests but they are almost entirely unit tests with mocked dependencies, so they pass even when real integration breaks, which is exactly what happened with the compositor bug. None of this blocks the biblical cover generator but I want you to know that as we add more features on top, things will get harder to debug and maintain. Something to think about for the longer term roadmap.
+
+Back to pricing. Once I have answers to the questions above, especially the template design direction, I can give you a tighter number. If you have a design reference and the data in JSON, I can probably do this closer to $600 to $700 in two milestones. If I am also designing the visual identity from scratch and parsing a 753-page PDF, it is more like $800 to $1000. Either way I am happy to break it into milestones so you only pay as you see results.
+
+Let me know your thoughts.

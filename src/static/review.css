@@ -1,0 +1,281 @@
+/* Page-level styles for /review (new design lock variant) */
+main {
+  max-width: 1600px;
+  margin: 0 auto;
+  padding: 14px;
+  display: grid;
+  gap: 12px;
+}
+
+body > header {
+  margin-left: 252px;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--line);
+  position: sticky;
+  top: 0;
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(4px);
+  z-index: 15;
+}
+
+h1 {
+  margin: 0 0 10px;
+  color: var(--text);
+}
+
+.controls {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr 1fr 1fr auto auto;
+  gap: 8px;
+}
+
+.controls input,
+.controls select,
+.controls button {
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: #ffffff;
+  color: var(--text);
+  padding: 8px;
+}
+
+.controls button {
+  border: none;
+  background: var(--gold);
+  color: #162441;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.toolbar {
+  margin-top: 8px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.toolbar button {
+  border: none;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.btn-auto {
+  background: #89b4ff;
+  color: #102d5b;
+}
+
+.btn-export {
+  background: #9fd9ad;
+  color: #0f4e26;
+}
+
+.btn-archive {
+  background: #ffc88d;
+  color: #5b2d02;
+}
+
+.btn-catalog {
+  background: #d8b15a;
+  color: #10213d;
+}
+
+.progress {
+  margin-top: 10px;
+}
+
+.bar {
+  width: 100%;
+  height: 10px;
+  border-radius: 99px;
+  background: rgba(31, 47, 82, 0.18);
+  overflow: hidden;
+}
+
+.fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, #e5c375, #ffd98f);
+}
+
+.status {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 5px;
+}
+
+.book {
+  background: #ffffff;
+  color: #1b2233;
+  border-radius: 14px;
+  padding: 12px;
+  border: 1px solid var(--line);
+}
+
+.book.focused {
+  border-color: rgba(196, 163, 82, 0.55);
+  box-shadow: 0 0 0 2px rgba(196, 163, 82, 0.2) inset;
+}
+
+.meta {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 6px 0 10px;
+  color: #5b6478;
+  font-size: 13px;
+}
+
+.chip {
+  border-radius: 999px;
+  background: #ece4d3;
+  padding: 3px 8px;
+  font-size: 11px;
+}
+
+.chip.warn {
+  background: #ffe4ad;
+  color: #5d3a00;
+  cursor: pointer;
+}
+
+.images {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 8px;
+}
+
+.thumb {
+  background: #ffffff;
+  border-radius: 10px;
+  padding: 8px;
+  border: 2px solid transparent;
+}
+
+.thumb.selected-auto {
+  border-color: #4d87f7;
+}
+
+.thumb.selected-manual {
+  border-color: #3ebf75;
+}
+
+.thumb img {
+  width: 100%;
+  border-radius: 8px;
+  cursor: zoom-in;
+}
+
+.label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 6px;
+  font-size: 12px;
+  gap: 6px;
+}
+
+.score {
+  background: #f2e7cb;
+  color: #55420f;
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+#zoomModal,
+#helpModal,
+#similarityModal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.82);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 30;
+}
+
+#zoomModal img {
+  max-width: 94vw;
+  max-height: 94vh;
+  border-radius: 8px;
+}
+
+.help-card {
+  width: min(700px, 95vw);
+  background: #ffffff;
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 12px;
+}
+
+.help-grid {
+  display: grid;
+  grid-template-columns: 140px 1fr;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.help-grid div {
+  border-bottom: 1px solid rgba(31, 47, 82, 0.1);
+  padding: 4px 0;
+}
+
+.sim-ab-wrap {
+  position: relative;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+}
+
+.sim-ab-wrap img {
+  width: 100%;
+  display: block;
+  border-radius: 8px;
+}
+
+.sim-ab-top {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+@media (max-width: 1050px) {
+  .controls {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 980px) {
+  body > header {
+    margin-left: 0;
+    top: 0;
+  }
+}
+
+.review-modal-close {
+  border: none;
+  border-radius: 8px;
+  padding: 8px 10px;
+  background: #b8c6df;
+  color: #16284a;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.review-similarity-card {
+  width: min(980px, 96vw);
+}
+
+.review-book-title {
+  margin: 0;
+}
+
+.review-download-link {
+  color: var(--text);
+  text-decoration: underline;
+}

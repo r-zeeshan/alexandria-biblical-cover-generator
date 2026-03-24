@@ -1,0 +1,66 @@
+{
+  "romance": {
+    "positive_modifier": "warm colors, intimate imagery, soft focus, script-friendly elegance, tender emotion",
+    "negative_modifier": "violence, dark horror themes, urban decay"
+  },
+  "thriller": {
+    "positive_modifier": "dark tones, high contrast, suspenseful atmosphere, isolated locations, ominous texture",
+    "negative_modifier": "bright playful scenes, cheerful cartoon look, whimsical tone"
+  },
+  "fantasy": {
+    "positive_modifier": "magical elements, ornate borders, epic landscapes, mythical creatures, rich symbolic detail",
+    "negative_modifier": "mundane office settings, modern consumer tech, minimalist realism"
+  },
+  "science_fiction": {
+    "positive_modifier": "space scale, futuristic cityscapes, advanced technology motifs, cosmic phenomena",
+    "negative_modifier": "pastoral countryside, medieval realism, rustic domestic scenes"
+  },
+  "non_fiction": {
+    "positive_modifier": "professional authoritative composition, clean imagery, factual visual language",
+    "negative_modifier": "fantastical surrealism, dreamy abstraction without context"
+  },
+  "children": {
+    "positive_modifier": "bright colors, playful fonts, illustrated style, friendly characters",
+    "negative_modifier": "dark violence, body horror, bleak realism"
+  },
+  "historical": {
+    "positive_modifier": "muted tones, period-appropriate imagery, aged textures, serif typography",
+    "negative_modifier": "neon futurism, cyberpunk technology, contemporary urban branding"
+  },
+  "literary_fiction": {
+    "positive_modifier": "abstract symbolic mood, minimalist composition, emotionally evocative imagery",
+    "negative_modifier": "literal stock-photo framing, overt commercial ad aesthetics"
+  },
+  "philosophy": {
+    "positive_modifier": "contemplative abstract symbolism, classical references, meditative visual tempo",
+    "negative_modifier": "action spectacle, slapstick humor, literal gore"
+  },
+  "mystery": {
+    "positive_modifier": "enigmatic motifs, shadowed depth, investigative atmosphere, subtle tension",
+    "negative_modifier": "bright comic style, overt romance framing, cheerful daytime mood"
+  },
+  "aliases": {
+    "sci_fi": "science_fiction",
+    "science fiction": "science_fiction",
+    "womens_fiction": "romance",
+    "crime": "thriller",
+    "horror": "thriller",
+    "classic": "literary_fiction",
+    "classics": "literary_fiction",
+    "military": "historical",
+    "self_help": "non_fiction",
+    "business": "non_fiction",
+    "memoir": "non_fiction",
+    "ya": "children"
+  },
+  "keyword_rules": [
+    {"match": ["war", "battle", "empire", "regiment", "soldier"], "genre": "historical"},
+    {"match": ["love", "heart", "kiss", "desire", "bride"], "genre": "romance"},
+    {"match": ["murder", "detective", "crime", "killer", "mystery"], "genre": "thriller"},
+    {"match": ["space", "galaxy", "robot", "planet", "starship"], "genre": "science_fiction"},
+    {"match": ["dragon", "sword", "magic", "kingdom", "wizard"], "genre": "fantasy"},
+    {"match": ["children", "kid", "adventure", "storybook", "fairy"], "genre": "children"},
+    {"match": ["philosophy", "ethics", "reason", "virtue", "metaphysics"], "genre": "philosophy"}
+  ],
+  "default_genre": "literary_fiction"
+}

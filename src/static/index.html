@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Alexandria Cover Designer v2</title>
+  <link rel="stylesheet" href="/src/static/shared.css?v=20260302-designlock" />
+  <link rel="stylesheet" href="/static/css/style.css?v=20260311-prompt46" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-logo">Alexandria</div>
+        <button id="sidebarToggle" class="btn-icon" aria-label="Toggle sidebar">☰</button>
+      </div>
+      <nav class="sidebar-nav">
+        <div class="nav-section">
+          <span class="nav-section-title">Generate</span>
+          <a class="nav-link" data-page="iterate" href="#iterate"><svg viewBox="0 0 24 24" width="16" height="16"><rect x="4" y="4" width="16" height="16" rx="3" fill="none" stroke="currentColor" stroke-width="2"/></svg><span>Iterate</span></a>
+          <a class="nav-link" data-page="batch" href="#batch"><svg viewBox="0 0 24 24" width="16" height="16"><rect x="4" y="4" width="7" height="7" fill="none" stroke="currentColor" stroke-width="2"/><rect x="13" y="4" width="7" height="7" fill="none" stroke="currentColor" stroke-width="2"/><rect x="4" y="13" width="7" height="7" fill="none" stroke="currentColor" stroke-width="2"/><rect x="13" y="13" width="7" height="7" fill="none" stroke="currentColor" stroke-width="2"/></svg><span>Batch</span></a>
+          <a class="nav-link" data-page="jobs" href="#jobs"><svg viewBox="0 0 24 24" width="16" height="16"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 7v6l4 2" fill="none" stroke="currentColor" stroke-width="2"/></svg><span>Jobs</span></a>
+        </div>
+        <div class="nav-section">
+          <span class="nav-section-title">Review</span>
+          <a class="nav-link" data-page="review" href="#review"><svg viewBox="0 0 24 24" width="16" height="16"><path d="M5 12l4 4L19 6" fill="none" stroke="currentColor" stroke-width="2"/><rect x="3" y="3" width="18" height="18" rx="2" fill="none" stroke="currentColor" stroke-width="2"/></svg><span>Review</span></a>
+          <a class="nav-link" data-page="visual-qa" href="#visual-qa"><svg viewBox="0 0 24 24" width="16" height="16"><rect x="3" y="4" width="18" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M7 10h10M7 14h6" fill="none" stroke="currentColor" stroke-width="2"/></svg><span>Visual QA</span></a>
+          <a class="nav-link" data-page="compare" href="#compare"><svg viewBox="0 0 24 24" width="16" height="16"><path d="M5 12h14M12 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2"/></svg><span>Compare</span></a>
+          <a class="nav-link" data-page="similarity" href="#similarity"><svg viewBox="0 0 24 24" width="16" height="16"><circle cx="9" cy="12" r="5" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="15" cy="12" r="5" fill="none" stroke="currentColor" stroke-width="2"/></svg><span>Similarity</span></a>
+          <a class="nav-link" data-page="mockups" href="#mockups"><svg viewBox="0 0 24 24" width="16" height="16"><rect x="3" y="5" width="18" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 19h8" fill="none" stroke="currentColor" stroke-width="2"/></svg><span>Mockups</span></a>
+        </div>
+        <div class="nav-section">
+          <span class="nav-section-title">Insights</span>
+          <a class="nav-link" data-page="dashboard" href="#dashboard"><svg viewBox="0 0 24 24" width="16" height="16"><path d="M4 19h16M7 15V9m5 6V5m5 10v-3" fill="none" stroke="currentColor" stroke-width="2"/></svg><span>Dashboard</span></a>
+          <a class="nav-link" data-page="history" href="#history"><svg viewBox="0 0 24 24" width="16" height="16"><path d="M3 12a9 9 0 1 0 3-6.7" fill="none" stroke="currentColor" stroke-width="2"/><path d="M3 4v5h5" fill="none" stroke="currentColor" stroke-width="2"/></svg><span>History</span></a>
+          <a class="nav-link" data-page="analytics" href="#analytics"><svg viewBox="0 0 24 24" width="16" height="16"><path d="M4 19V5m8 14V9m8 10V12" fill="none" stroke="currentColor" stroke-width="2"/></svg><span>Analytics</span></a>
+        </div>
+        <div class="nav-section">
+          <span class="nav-section-title">Configure</span>
+          <a class="nav-link" data-page="catalogs" href="#catalogs"><svg viewBox="0 0 24 24" width="16" height="16"><path d="M4 5h16v14H4z" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 5v14" fill="none" stroke="currentColor" stroke-width="2"/></svg><span>Catalogs</span></a>
+          <a class="nav-link" data-page="prompts" href="#prompts"><svg viewBox="0 0 24 24" width="16" height="16"><path d="M5 4h14v16H5z" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 8h8M8 12h8M8 16h5" fill="none" stroke="currentColor" stroke-width="2"/></svg><span>Prompts</span></a>
+          <a class="nav-link" data-page="settings" href="#settings"><svg viewBox="0 0 24 24" width="16" height="16"><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M19.4 15a1 1 0 0 0 .2 1.1l.1.1a2 2 0 0 1-2.8 2.8l-.1-.1a1 1 0 0 0-1.1-.2 1 1 0 0 0-.6.9V20a2 2 0 0 1-4 0v-.1a1 1 0 0 0-.6-.9 1 1 0 0 0-1.1.2l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1 1 0 0 0 .2-1.1 1 1 0 0 0-.9-.6H4a2 2 0 0 1 0-4h.1a1 1 0 0 0 .9-.6 1 1 0 0 0-.2-1.1l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1 1 0 0 0 1.1.2 1 1 0 0 0 .6-.9V4a2 2 0 0 1 4 0v.1a1 1 0 0 0 .6.9 1 1 0 0 0 1.1-.2l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1 1 0 0 0-.2 1.1 1 1 0 0 0 .9.6H20a2 2 0 0 1 0 4h-.1a1 1 0 0 0-.9.6z" fill="none" stroke="currentColor" stroke-width="1.6"/></svg><span>Settings</span></a>
+          <a class="nav-link" data-page="api-docs" href="#api-docs"><svg viewBox="0 0 24 24" width="16" height="16"><path d="M8 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h2M16 4h2a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-2M9 8l-3 4 3 4M15 8l3 4-3 4" fill="none" stroke="currentColor" stroke-width="2"/></svg><span>API Docs</span></a>
+        </div>
+      </nav>
+    </aside>
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    <div class="main-area">
+      <header class="top-header" id="topHeader">
+        <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Open menu">☰</button>
+        <h1 class="page-title" id="pageTitle">Iterate</h1>
+        <div class="budget-badge" id="budgetBadge">$0.00 / $50.00</div>
+        <div class="sync-status" id="syncStatus">0 books</div>
+      </header>
+      <main class="content" id="content"></main>
+      <div class="toast-container" id="toastContainer"></div>
+    </div>
+  </div>
+
+  <script>
+    (function initRouteFromPath() {
+      const p = location.pathname.replace(/\/+$/, '') || '/';
+      const map = {
+        '/': 'iterate',
+        '/iterate': 'iterate',
+        '/batch': 'batch',
+        '/jobs': 'jobs',
+        '/review': 'review',
+        '/visual-qa': 'visual-qa',
+        '/compare': 'compare',
+        '/similarity': 'similarity',
+        '/mockups': 'mockups',
+        '/dashboard': 'dashboard',
+        '/history': 'history',
+        '/analytics': 'analytics',
+        '/analytics/models': 'analytics',
+        '/catalogs': 'catalogs',
+        '/prompts': 'prompts',
+        '/settings': 'settings',
+        '/catalog/settings': 'settings',
+        '/api-docs': 'api-docs',
+      };
+      const initial = map[p] || 'iterate';
+      window.__INITIAL_PAGE__ = initial;
+      if (!location.hash) location.hash = '#' + initial;
+    })();
+  </script>
+
+  <script type="module" src="/static/js/db.js?v=20260304-modelcards09g"></script>
+  <script type="module" src="/static/js/drive.js?v=20260304-modelcards09g"></script>
+  <script type="module" src="/static/js/openrouter.js?v=20260313-nanobanana2-sync"></script>
+  <script type="module" src="/static/js/compositor.js?v=20260304-modelcards09g"></script>
+  <script type="module" src="/static/js/quality.js?v=20260304-modelcards09g"></script>
+  <script type="module" src="/static/js/style-diversifier.js?v=20260304-modelcards09g"></script>
+  <script type="module" src="/static/js/pages/iterate.js?v=20260313-nanobanana2-sync"></script>
+  <script type="module" src="/static/js/pages/batch.js?v=20260304-modelcards09g"></script>
+  <script type="module" src="/static/js/pages/jobs.js?v=20260304-modelcards09g"></script>
+  <script type="module" src="/static/js/pages/review.js?v=20260304-modelcards09g"></script>
+  <script type="module" src="/static/js/pages/visual-qa.js?v=20260305-visualqa16"></script>
+  <script type="module" src="/static/js/pages/compare.js?v=20260304-modelcards09g"></script>
+  <script type="module" src="/static/js/pages/similarity.js?v=20260304-modelcards09g"></script>
+  <script type="module" src="/static/js/pages/mockups.js?v=20260304-modelcards09g"></script>
+  <script type="module" src="/static/js/pages/dashboard.js?v=20260304-modelcards09g"></script>
+  <script type="module" src="/static/js/pages/history.js?v=20260304-modelcards09g"></script>
+  <script type="module" src="/static/js/pages/analytics.js?v=20260304-modelcards09g"></script>
+  <script type="module" src="/static/js/pages/catalogs.js?v=20260304-modelcards09g"></script>
+  <script type="module" src="/static/js/pages/prompts.js?v=20260304-modelcards09g"></script>
+  <script type="module" src="/static/js/pages/settings.js?v=20260304-modelcards09g"></script>
+  <script type="module" src="/static/js/pages/api-docs.js?v=20260304-modelcards09g"></script>
+  <script type="module" src="/static/js/app.js?v=20260311-prompt46"></script>
+</body>
+</html>

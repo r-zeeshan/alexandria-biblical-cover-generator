@@ -1,0 +1,152 @@
+[
+  {
+    "id": "heritage_classic",
+    "name": "Heritage Classic",
+    "description": "Traditional navy and gold medallion style with ornate flourishes and serif hierarchy.",
+    "genres": ["historical", "literary_fiction", "philosophy", "classics"],
+    "font_pairing": {"title": "Garamond", "author": "Trajan Pro"},
+    "color_palette": {"primary": "#1a2744", "secondary": "#c5a55a", "accent": "#f4d889", "text": "#f6e5b8"},
+    "element_positioning": {
+      "title": "top-right",
+      "author": "bottom-right",
+      "medallion": "center-right",
+      "ornaments": "corners-and-spine"
+    },
+    "prompt_modifier": "classical engraved illustration, museum-grade heritage cover styling, scene-first composition"
+  },
+  {
+    "id": "victorian_engraving",
+    "name": "Victorian Engraving",
+    "description": "Etching-heavy composition with period texture and dramatic line work.",
+    "genres": ["historical", "mystery", "adventure", "classics"],
+    "font_pairing": {"title": "Baskerville", "author": "Caslon"},
+    "color_palette": {"primary": "#1e2230", "secondary": "#b49556", "accent": "#e6d3a5", "text": "#f2e7cd"},
+    "element_positioning": {
+      "title": "top-right",
+      "author": "bottom-right",
+      "medallion": "center-right",
+      "ornaments": "filigree-heavy"
+    },
+    "prompt_modifier": "19th-century steel engraving mood, etched linework, restrained sepia tonality"
+  },
+  {
+    "id": "minimalist",
+    "name": "Minimalist",
+    "description": "White space dominant, single focal image, clean sans-serif typography.",
+    "genres": ["literary_fiction", "poetry", "self_help", "non_fiction"],
+    "font_pairing": {"title": "Helvetica Neue", "author": "Garamond"},
+    "color_palette": {"primary": "#f7f6f2", "secondary": "#222222", "accent": "#c5a55a", "text": "#121212"},
+    "element_positioning": {
+      "title": "upper-left",
+      "author": "lower-left",
+      "medallion": "center",
+      "ornaments": "minimal"
+    },
+    "prompt_modifier": "minimalist composition, generous negative space, one dominant focal element, understated elegance"
+  },
+  {
+    "id": "dark_thriller",
+    "name": "Dark Thriller",
+    "description": "Dark base, high contrast lighting, gritty texture and tense atmosphere.",
+    "genres": ["thriller", "horror", "mystery", "crime"],
+    "font_pairing": {"title": "Bebas Neue", "author": "Merriweather"},
+    "color_palette": {"primary": "#0b0f18", "secondary": "#2e3a52", "accent": "#c84a3a", "text": "#f2efe8"},
+    "element_positioning": {
+      "title": "top-left",
+      "author": "bottom-left",
+      "medallion": "center-right",
+      "ornaments": "subtle"
+    },
+    "prompt_modifier": "dark cinematic atmosphere, high-contrast dramatic lighting, distressed texture, suspense mood"
+  },
+  {
+    "id": "literary_fiction",
+    "name": "Literary Fiction",
+    "description": "Muted painterly look with refined serif typography and emotional subtlety.",
+    "genres": ["literary_fiction", "historical", "philosophy", "classics"],
+    "font_pairing": {"title": "Playfair Display", "author": "Lora"},
+    "color_palette": {"primary": "#d7d1c4", "secondary": "#4c4b4a", "accent": "#8f6f54", "text": "#2a2724"},
+    "element_positioning": {
+      "title": "top-center",
+      "author": "bottom-center",
+      "medallion": "center",
+      "ornaments": "light"
+    },
+    "prompt_modifier": "painterly literary cover style, muted atmospheric palette, nuanced symbolic focal art"
+  },
+  {
+    "id": "business_nonfiction",
+    "name": "Business/Non-Fiction",
+    "description": "Clean grid layout, direct hierarchy, strong professional visual tone.",
+    "genres": ["non_fiction", "business", "memoir", "self_help"],
+    "font_pairing": {"title": "Montserrat", "author": "Source Serif Pro"},
+    "color_palette": {"primary": "#f2f5f9", "secondary": "#22314f", "accent": "#0ea5a0", "text": "#142033"},
+    "element_positioning": {
+      "title": "top-left",
+      "author": "below-title",
+      "medallion": "right-column",
+      "ornaments": "none"
+    },
+    "prompt_modifier": "professional nonfiction composition, clear visual hierarchy, confident contemporary editorial feel"
+  },
+  {
+    "id": "children",
+    "name": "Children's Book",
+    "description": "Bright palette, playful illustrated framing, rounded friendly typography.",
+    "genres": ["children", "ya", "humor", "adventure"],
+    "font_pairing": {"title": "Baloo 2", "author": "Nunito"},
+    "color_palette": {"primary": "#4f86f7", "secondary": "#ffd166", "accent": "#ff6b6b", "text": "#10203a"},
+    "element_positioning": {
+      "title": "top-center",
+      "author": "bottom-center",
+      "medallion": "center",
+      "ornaments": "playful-border"
+    },
+    "prompt_modifier": "vivid playful illustration style, friendly whimsical shapes, child-safe cheerful mood"
+  },
+  {
+    "id": "romance",
+    "name": "Romance",
+    "description": "Warm gradient overlays, intimate focal art, script-influenced title treatment.",
+    "genres": ["romance", "womens_fiction", "literary_fiction"],
+    "font_pairing": {"title": "Great Vibes", "author": "Cormorant Garamond"},
+    "color_palette": {"primary": "#f1c7c7", "secondary": "#bf6f7f", "accent": "#f6d28a", "text": "#3b1d2d"},
+    "element_positioning": {
+      "title": "upper-center",
+      "author": "lower-center",
+      "medallion": "center",
+      "ornaments": "soft-flourish"
+    },
+    "prompt_modifier": "romantic warm tones, intimate emotional storytelling, soft focus glow, elegant sensual composition"
+  },
+  {
+    "id": "scifi_fantasy",
+    "name": "Sci-Fi/Fantasy",
+    "description": "Epic world-building visuals with dramatic lighting and scale.",
+    "genres": ["science_fiction", "sci_fi", "fantasy", "dystopian"],
+    "font_pairing": {"title": "Orbitron", "author": "Cinzel"},
+    "color_palette": {"primary": "#0b1024", "secondary": "#293a7a", "accent": "#55d6ff", "text": "#ecf4ff"},
+    "element_positioning": {
+      "title": "top-center",
+      "author": "bottom-center",
+      "medallion": "center",
+      "ornaments": "stellar"
+    },
+    "prompt_modifier": "epic cinematic worldbuilding, cosmic scale, dramatic atmospheric lighting, futuristic mythic detail"
+  },
+  {
+    "id": "art_deco",
+    "name": "Art Deco",
+    "description": "Geometric ornament, metallic accents, poster-like period elegance.",
+    "genres": ["historical", "mystery", "literary_fiction", "classics"],
+    "font_pairing": {"title": "Futura", "author": "Didot"},
+    "color_palette": {"primary": "#13233c", "secondary": "#c4a35f", "accent": "#4ecdc4", "text": "#f4e9cd"},
+    "element_positioning": {
+      "title": "top-center",
+      "author": "bottom-center",
+      "medallion": "center",
+      "ornaments": "geometric"
+    },
+    "prompt_modifier": "art deco geometry, metallic highlights, elegant symmetry, period poster sophistication"
+  }
+]

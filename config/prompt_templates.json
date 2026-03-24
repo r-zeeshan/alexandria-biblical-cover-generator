@@ -1,0 +1,62 @@
+{
+  "style_groups": {
+    "sketch_style": {
+      "description": "Modeled on Cossacks & Sevastopol Sketches — Tim's preferred style",
+      "style_anchors": "classical pen-and-ink sketch, detailed engraving illustration, refined crosshatching, 19th century book illustration craft, warm parchment undertones, fine line work, copper plate etching quality, full-bleed narrative scene, centered focal subject, crop-safe margins, vivid high-contrast painterly color accents, no text, no letters, no words, no typography, no logos, no labels, no border, no frame, no decorative edge, no ornamental border, no ribbon banner, interior scene only edge to edge",
+      "applies_to": ["1_iconic_scene_sketch", "2_character_portrait_sketch", "3_setting_landscape_sketch"]
+    },
+    "oil_painting_style": {
+      "description": "Rich classical oil painting — dramatic and hand-crafted",
+      "style_anchors": "classical oil painting, masterpiece quality, warm golden lighting, renaissance art style, detailed brushwork, gallery-quality illustration, full-bleed narrative scene, centered focal subject, crop-safe margins, rich high-saturation color palette, dramatic chiaroscuro, no text, no letters, no words, no typography, no logos, no labels, no border, no frame, no decorative edge, no ornamental border, no ribbon banner, interior scene only edge to edge",
+      "applies_to": ["4_dramatic_oil_painting"]
+    },
+    "alternative_style": {
+      "description": "Unique artistic style per book — watercolor, woodcut, period-specific art",
+      "style_anchors": "period-appropriate artistic style, hand-crafted aesthetic, classical composition, warm tones matching navy-and-gold cover design, unique artistic interpretation, full-bleed narrative scene, centered focal subject, crop-safe margins, vivid high-contrast accents, no text, no letters, no words, no typography, no logos, no labels, no border, no frame, no decorative edge, no ornamental border, no ribbon banner, interior scene only edge to edge",
+      "applies_to": ["5_symbolic_alternative"]
+    }
+  },
+
+  "negative_prompt": "text, letters, words, typography, title text, logos, labels, watermark, signature, border, frame, decorative edge, ornamental border, circular frame, circular border, wreath, garland, vine ring, floral ring, ornamental ring, medallion border, scalloped edge, ribbon banner, plaque, seal, medallion text, photorealistic, 3d render, cartoon, anime, comic, digital art, modern, neon, flat colors, low quality, blurry, deformed, ugly, bad anatomy, distorted hands, extra fingers, mutated, obviously AI-generated, stock photo, generic",
+
+  "variants": {
+    "1_iconic_scene_sketch": {
+      "name": "Iconic Scene (Sketch Style)",
+      "style_group": "sketch_style",
+      "description": "The most famous scene from the book, rendered as a classical pen-and-ink sketch with warm sepia tones",
+      "template": "Detailed pen-and-ink engraving of {scene_description}, {style_anchors}"
+    },
+    "2_character_portrait_sketch": {
+      "name": "Character Portrait (Sketch Style)",
+      "style_group": "sketch_style",
+      "description": "Main character in period-appropriate setting, classical etching/engraving style",
+      "template": "Classical engraving portrait of {character_description}, {style_anchors}"
+    },
+    "3_setting_landscape_sketch": {
+      "name": "Setting / Landscape (Sketch Style)",
+      "style_group": "sketch_style",
+      "description": "Key location from the story, rendered as a detailed 19th-century book illustration",
+      "template": "Detailed 19th-century book illustration of {setting_description}, {style_anchors}"
+    },
+    "4_dramatic_oil_painting": {
+      "name": "Dramatic Oil Painting",
+      "style_group": "oil_painting_style",
+      "description": "A pivotal scene in rich oil painting style — dramatic, hand-crafted, classical",
+      "template": "Dramatic oil painting of {moment_description}, {style_anchors}"
+    },
+    "5_symbolic_alternative": {
+      "name": "Symbolic / Alternative Style",
+      "style_group": "alternative_style",
+      "description": "Abstract/symbolic representation using a unique artistic approach (watercolor, woodcut, etc.) that fits the cover aesthetic",
+      "template": "{style_specific_prefix} symbolizing {theme_description}, {style_anchors}"
+    }
+  },
+
+  "generation_params": {
+    "width": 1024,
+    "height": 1024,
+    "guidance_scale": 7.5,
+    "num_inference_steps": 28,
+    "output_format": "png"
+  }
+}

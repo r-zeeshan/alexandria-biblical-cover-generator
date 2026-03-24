@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(railway logs:*)",
+      "Bash(railway link:*)",
+      "Bash(railway service:*)",
+      "Bash(# Copy the current repo to new folder\ncp -r D:/alexandria-cover-designer-latest D:/alexandria-biblical-cover-generator\n\n# Remove old git history and start fresh\ncd D:/alexandria-biblical-cover-generator\nrm -rf .git\ngit init\ngit branch -M master\n\n# Point to new repo\ngit remote add origin https://github.com/r-zeeshan/alexandria-biblical-cover-generator.git\n\necho \"Done — new repo at D:/alexandria-biblical-cover-generator\")"
+    ]
+  }
+}

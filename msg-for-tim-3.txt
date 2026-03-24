@@ -1,0 +1,13 @@
+Hey Tim, pushed the multi-tab optimization. Should handle 30+ tabs now. Start with 10 to verify then ramp up. Let me know how it goes.
+
+On the biblical cover generator — I checked the JSON catalog you sent and it looks great. All 211 titles with enrichment data already included (genre, era, scenes, characters, motifs). That saves a bunch of time on milestone 2.
+
+I'm ready to start on milestone 1 (template + text placement). I just need a couple things from you before I begin:
+
+1. What dimensions should the final cover image be? Same as the classics (3784x2777) or different?
+
+2. A visual direction for the template design. Can you share 2-3 examples of book covers you like the look of for this biblical series? Just a screenshot or a link to anything that captures the vibe you want. Colors, fonts, layout, where the illustration goes, decorative elements if any. Doesn't have to be exact, just enough so I'm not guessing.
+
+3. Just confirming — output is a flat full cover image (front + spine + back) same as the classics, not a print-ready PDF. Correct?
+
+Once I have that I can start right away. Going to set up the new repo for it today.

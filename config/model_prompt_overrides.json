@@ -1,0 +1,10 @@
+{
+  "models": {
+    "flux-2-pro": {
+      "style": "concise",
+      "prompt_template": "Iconic full-bleed narrative illustration for {title}, classical style, centered focal subject, crop-safe margins, vivid high-contrast palette, interior scene only, no text, no labels, no border, no frame, no ribbon banner.",
+      "updated_at": "2026-02-21T17:05:03.945868+00:00",
+      "average_score": 0.7922
+    }
+  }
+}

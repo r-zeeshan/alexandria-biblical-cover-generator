@@ -1,0 +1,26 @@
+{
+  "ingram_spark": {
+    "bleed_inches": 0.125,
+    "safe_zone_inches": 0.125,
+    "minimum_dpi": 300,
+    "color_profile": "CMYK",
+    "max_file_size_mb": 40,
+    "accepted_formats": ["pdf", "jpg"]
+  },
+  "kdp": {
+    "bleed_inches": 0.125,
+    "safe_zone_inches": 0.0625,
+    "minimum_dpi": 300,
+    "color_profile": "RGB",
+    "max_file_size_mb": 650,
+    "accepted_formats": ["pdf"]
+  },
+  "lightning_source": {
+    "bleed_inches": 0.125,
+    "safe_zone_inches": 0.125,
+    "minimum_dpi": 300,
+    "color_profile": "CMYK",
+    "max_file_size_mb": 40,
+    "accepted_formats": ["pdf"]
+  }
+}

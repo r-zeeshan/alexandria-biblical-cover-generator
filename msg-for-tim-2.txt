@@ -1,0 +1,21 @@
+Hey Tim, that descoping makes a huge difference. No print-ready output, JSON metadata, fixed dimensions — that cuts out most of the hard stuff. $500 in two milestones works for me.
+
+Before I start, I need a few things from you and want to clarify some stuff.
+
+For milestone 1, the template and text placement. You said output should be the same as the current tool. So I am assuming a high-res flat image showing the full cover layout — front, spine, and back — all in one image, same as the classics. No print-ready PDF with bleed and trim marks for now, just the image. And then when they click save, we export it in all the formats like we do now (png, jpg, pdf, ai). Can you confirm that is what you have in mind?
+
+Also what dimensions should the cover image be? The current classics covers are 3784x2777. Should I use the same for the biblical series?
+
+For the template design, I need a visual direction from you before I can start. You said something clean and elegant that fits the biblical theme. Can you share 2-3 examples of book covers you like the look of? Does not have to be exact, just a general vibe. Colors, layout, how the illustration sits on the cover, what kind of decorative elements if any. A quick Pinterest link, a screenshot, anything works. I do not want to spend days designing something and then find out it is not what you had in mind. The faster you give me a direction the faster I can build it.
+
+For the metadata, you said you will send me a JSON version of the catalog. I need that before I can start milestone 1 because the text placement engine needs real title data to test against. Specifically I need title, subtitle, author, and back cover description for each of the 211 books in structured JSON. The cover scene ideas and keywords can come later for milestone 2.
+
+For milestone 2, the enrichment and prompts. The existing enrichment pipeline takes book metadata and generates structured data like genre, era, mood, characters, iconic scenes, visual motifs. I will run the 211 biblical titles through that same pipeline with their descriptions and cover scene ideas as input. For the prompt library, I will create base styles that work for biblical content like illuminated manuscript, Byzantine, Renaissance religious, dramatic chiaroscuro, and wildcard styles like stained glass, mosaic, fresco, coptic art. These get wired into the same rotation system the current tool uses. Just confirming that the 3 cover scene ideas you have per title are meant to be used as the iconic scenes in the enrichment data, since those are what actually drive the image generation prompts.
+
+So to summarize what I need from you to start:
+1. Confirm output is a flat full cover image (front + spine + back) exported in all formats, no print-ready PDF for now
+2. Image dimensions
+3. Visual references for the template design
+4. JSON catalog with title, subtitle, author, back cover description for all 211 titles
+
+Once I have those I can start right away.

@@ -1,0 +1,3607 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="/src/static/shared.css?v=20260302-designlock" />
+  <link rel="stylesheet" href="/src/static/iterate.css?v=20260302-designlock" />
+<title>Alexandria Iterate</title>
+</head>
+<body class="iterate-page">
+  <nav class="nav">
+    <div class="nav-brand">
+      <span class="nav-brand-mark">◫</span>
+      <span class="nav-brand-text">Alexandria</span>
+    </div>
+    <a class="active" href="/iterate">Iterate</a>
+    <a href="/review">Review</a>
+    <a href="/batch">Batch</a>
+    <a href="/history">History</a>
+    <a href="/dashboard">Dashboard</a>
+    <a href="/similarity">Similarity</a>
+    <a href="/mockups">Mockups</a>
+    <a href="/catalogs">Catalogs</a>
+    <a href="/jobs">Jobs</a>
+    <a href="/compare">Compare</a>
+    <a href="/analytics/models">Model Analytics</a>
+    <a href="/prompts">Prompts</a>
+    <a href="/catalog/settings">Catalog Settings</a>
+    <a href="/admin/performance">Performance</a>
+    <a href="/api/docs" target="_blank">API Docs</a>
+    <div class="catalog">
+      <span>Catalog</span>
+      <select id="catalogSelect"></select>
+    </div>
+    <button id="notificationBell" type="button" class="notification-bell" title="Notifications">
+      Bell <span id="notificationCount" class="notification-count">0</span>
+    </button>
+  </nav>
+
+  <header>
+    <h1>Single-Cover Iteration Lab</h1>
+    <div id="status" class="status">Loading...</div>
+    <div id="costTracker" class="status">Today: $0.00 (0 runs) • Session: $0.00 (0 runs)</div>
+  </header>
+
+  <div class="toast-container" id="toastContainer"></div>
+
+  <main class="layout">
+    <aside class="card">
+      <h2>Controls</h2>
+      <div class="mode-toggle">
+        <button id="quickModeBtn" type="button" class="secondary" title="Fast flow with only the core controls">Quick Generate</button>
+        <button id="advancedModeBtn" type="button" class="mode-active" title="Show all controls and advanced tooling">Advanced</button>
+      </div>
+
+      <div id="quickControls" class="quick-controls">
+        <label>Book</label>
+        <select id="quickBookSelect"></select>
+        <div id="coverPreviewBox" class="cover-preview-box">
+          <img id="coverPreviewImg" class="picker-hidden" alt="Cover preview" />
+          <div id="coverPreviewStatus" class="status">Cover preview will appear here.</div>
+        </div>
+        <label class="u-mt-12">Models (Recommended First)</label>
+        <div id="quickModelsBox" class="quick-models"></div>
+        <label class="u-mt-12">Budget Preset</label>
+        <div id="presetToggle" class="preset-toggle">
+          <button id="presetCheapest" type="button" data-preset="cheapest" class="secondary">Cheapest</button>
+          <button id="presetBalanced" type="button" data-preset="balanced" class="secondary">Balanced</button>
+          <button id="presetPremium" type="button" data-preset="premium" class="secondary">Premium</button>
+        </div>
+        <div id="presetStatus" class="status">Preset-driven model selection is available in Quick mode.</div>
+        <div class="row u-mt-10">
+          <button id="quickGenerateBtn" type="button" title="Enter">Generate</button>
+        </div>
+        <div class="status">Need prompt/source controls? Switch to Advanced mode.</div>
+      </div>
+
+      <div id="advancedControlsWrap">
+      <details class="how-it-works">
+        <summary>How Cover Generation Works</summary>
+        <ol>
+          <li><strong>Select a book</strong> from catalog or Google Drive source.</li>
+          <li><strong>Choose prompt source</strong> (template, AI, library, or custom).</li>
+          <li><strong>Optionally enrich</strong> metadata and generate smart prompts.</li>
+          <li><strong>Review/edit prompt</strong> in the editor before generation.</li>
+          <li><strong>Select one or more models</strong> (Gemini Flash is usually cheapest).</li>
+          <li><strong>Click Generate</strong>; each variant gets a distinct style directive + seed.</li>
+          <li><strong>Review outputs</strong>, inspect prompt text, and download per variant ZIP.</li>
+        </ol>
+      </details>
+
+      <div class="section-header">Source</div>
+      <label>Cover Source</label>
+      <div class="row">
+        <select id="coverSourceSelect">
+          <option value="catalog">Catalog</option>
+          <option value="drive">Google Drive</option>
+        </select>
+        <button id="refreshDriveCoversBtn" type="button" class="secondary">Refresh</button>
+      </div>
+
+      <div id="catalogBookPicker">
+        <label>Book</label>
+        <select id="bookSelect"></select>
+      </div>
+
+      <div id="driveCoverPicker" class="picker-hidden">
+        <label>Google Drive Cover</label>
+        <select id="driveCoverSelect"></select>
+        <div id="driveCoverStatus" class="status">Drive covers not loaded.</div>
+      </div>
+      <div id="driveOutputInfo" class="status"></div>
+
+      <hr class="section-divider" />
+      <div class="section-header">Provider &amp; Models</div>
+      <label>Provider</label>
+      <div class="row">
+        <select id="providerSelect"></select>
+        <button id="testConnectionBtn" type="button">Test</button>
+      </div>
+      <div class="row u-mt-6">
+        <div id="providerStatus" class="status">Not tested</div>
+        <button id="providerRecheckBtn" type="button" class="secondary">Recheck</button>
+      </div>
+      <div id="providerConnectivityList" class="status"></div>
+
+      <label>
+        Models
+        <span class="help-tip" data-tip="Select one or more models. Use low-cost models for fast iteration and premium models for final-quality passes.">?</span>
+      </label>
+      <div class="row u-mb-6">
+        <button id="selectAllModels" type="button">Select All</button>
+        <button id="clearModels" type="button" class="secondary">Clear</button>
+      </div>
+      <div class="models" id="modelsBox"></div>
+      <div class="model-info-panel" id="modelInfoPanel"></div>
+
+      <hr class="section-divider" />
+      <div class="section-header">Generation</div>
+      <label>
+        Variations Per Model
+        <span class="help-tip" data-tip="How many variants each selected model should generate. Each variant receives additional prompt variation and a unique generation seed.">?</span>
+      </label>
+      <input id="variationCount" type="number" min="1" step="1" value="5" />
+
+      <label class="u-mt-12">
+        Template
+        <span class="help-tip" data-tip="Template adds a style modifier that changes composition, typography direction, and visual tone.">?</span>
+      </label>
+      <div class="row">
+        <select id="templateSelect"></select>
+        <select id="templateGenreFilter" title="Filter templates by genre"></select>
+      </div>
+      <div id="templateStatus" class="status">Template loading...</div>
+
+      <label>
+        Prompt Source
+        <span class="help-tip" data-tip="Template: default catalog prompt. AI-Generated: intelligent prompts for this book. Library: a saved prompt template. Custom: keep manual text exactly as written.">?</span>
+      </label>
+      <select id="promptSource">
+        <option value="template">Template</option>
+        <option value="ai_generated">AI-Generated</option>
+        <option value="library">Library</option>
+        <option value="custom">Custom</option>
+      </select>
+
+      <label>
+        Prompt
+        <span class="help-tip" data-tip="The medallion-scene prompt sent to the image model. You can edit this directly before clicking Generate.">?</span>
+      </label>
+      <textarea id="promptEditor" rows="7" placeholder="Your prompt appears here after selecting a book and source. You can edit it before generation."></textarea>
+      <div id="promptQuality" class="status">Prompt quality: n/a</div>
+      <div id="promptComposition" class="status prompt-composition">Prompt composition details appear here.</div>
+
+      <div class="row u-mt-10">
+        <button id="generateBtn" type="button">Generate</button>
+        <button id="savePromptBtn" type="button" class="secondary">Save Prompt</button>
+      </div>
+
+      <hr class="section-divider" />
+      <div class="section-header">AI Tools</div>
+      <div class="row u-mt-8">
+        <button id="enrichBookBtn" type="button" class="ghost" title="Analyze this title and infer richer themes, setting, and motifs to improve prompts.">Enrich This Book</button>
+        <button id="generateSmartPromptsBtn" type="button" class="ghost" title="Generate multiple intelligent prompt variants for this title and pick the strongest one.">Generate Smart Prompts</button>
+      </div>
+
+      <label class="u-mt-12">Book Enrichment</label>
+      <div id="enrichmentPanel" class="list"></div>
+
+      <label class="u-mt-12">Smart Prompt Variants</label>
+      <div id="smartPromptList" class="list"></div>
+
+      <hr class="section-divider" />
+      <div class="section-header">Style &amp; Library</div>
+      <label>
+        Style Anchors
+        <span class="help-tip" data-tip="Style anchors bias tone and rendering style. Combine anchors to steer aesthetic direction.">?</span>
+      </label>
+      <div id="anchorChips" class="chips"></div>
+
+      <label class="u-mt-12">Prompt Library</label>
+      <input id="libraryFilter" type="text" placeholder="Filter prompts" />
+      <div id="libraryList" class="list"></div>
+
+      <hr class="section-divider" />
+      <div class="section-header">History</div>
+      <div id="historyList" class="list"></div>
+      </div>
+    </aside>
+
+    <section class="card">
+      <h2>Results + Re-generation</h2>
+      <div class="tabs">
+        <button id="tabResults" class="active" type="button">Results</button>
+        <button id="tabWeak" type="button">Weak Books</button>
+      </div>
+
+      <div id="resultsPanel" class="panel active">
+        <div id="runSummaryBanner" class="run-summary-banner picker-hidden"></div>
+        <div class="row u-mb-8">
+          <button id="toggleOverlayBtn" class="ghost" type="button">Show Fit Overlay</button>
+          <button id="openCompareBtn" type="button">Compare Selected</button>
+          <button id="downloadBookBtn" type="button" class="secondary">⬇ Download This Book</button>
+          <button id="downloadApprovedBtn" type="button" class="secondary">⬇ Download All Approved</button>
+          <button id="downloadWinnerBtn" class="btn-download-winner picker-hidden" type="button">⬇ Download Picked Cover (ZIP)</button>
+        </div>
+        <div id="resultStatus" class="status">No generation started.</div>
+        <div id="heartbeatPanel" class="heartbeat-panel"></div>
+        <div id="compareStatus" class="compare-status">Pick 2-4 images and click Compare Selected.</div>
+        <div id="results" class="results"></div>
+        <details id="recentGenerations" class="recent-generations">
+          <summary>Recent Generations</summary>
+          <div id="recentGenerationsList" class="recent-generations-list"></div>
+        </details>
+      </div>
+
+      <div id="weakPanel" class="panel">
+        <div class="row u-mb-8">
+          <input id="weakThreshold" type="number" min="0" max="1" step="0.01" value="0.75" />
+          <button id="loadWeakBtn" type="button">Load Weak Books</button>
+          <button id="regenAllWeakBtn" type="button">Re-generate ALL Weak Books</button>
+        </div>
+        <div id="weakStatus" class="status">Load weak books to start targeted re-generation.</div>
+        <div id="weakList"></div>
+      </div>
+    </section>
+  </main>
+
+  <div id="compareModal">
+    <div class="modal-card">
+      <div class="row u-row-between-center">
+        <strong class="u-title-gold-18">Comparison</strong>
+        <button id="closeCompareBtn" class="secondary" type="button">Close</button>
+      </div>
+      <div id="compareContent" class="u-mt-10"></div>
+    </div>
+  </div>
+
+  <div id="zoomModal">
+    <div class="zoom-shell">
+      <div id="zoomLoading" class="zoom-loading">Loading high resolution preview…</div>
+      <img id="zoomImg" alt="zoom" />
+    </div>
+  </div>
+
+  <div id="notificationPanel" class="notification-panel picker-hidden">
+    <div class="row u-row-between-center">
+      <strong class="u-title-gold-18">Notifications</strong>
+      <button id="notificationCloseBtn" class="secondary" type="button">Close</button>
+    </div>
+    <div id="notificationList" class="notification-list u-mt-10"></div>
+  </div>
+
+  <div id="helpModal">
+    <div class="modal-card iterate-help-card">
+      <div class="row u-row-between-center">
+        <strong class="u-title-gold-18">Keyboard Shortcuts</strong>
+        <button id="closeHelpBtn" class="secondary" type="button">Close</button>
+      </div>
+        <div class="help-grid u-mt-10">
+          <div><code>G</code></div><div>Generate on current book</div>
+          <div><code>S</code></div><div>Save prompt to library</div>
+          <div><code>Space</code></div><div>Toggle Quick/Advanced mode</div>
+          <div><code>?</code></div><div>Open this help modal</div>
+        </div>
+      </div>
+    </div>
+
+  <script>
+    const app = {
+      catalog: 'classics',
+      catalogs: [],
+      books: [],
+      models: [],
+      providers: [],
+      providerModels: {},
+      anchors: [],
+      promptLibrary: [],
+      promptSource: 'template',
+      intelligentPromptsAvailable: false,
+      enrichmentAvailable: false,
+      promptPerformance: {},
+      selectedAnchors: new Set(),
+      latestResults: [],
+      history: [],
+      fitOverlayEnabled: false,
+      selectedProvider: 'all',
+      coverSource: 'catalog',
+      defaultCoverSource: 'catalog',
+      driveCovers: [],
+      selectedDriveCoverId: '',
+      driveFolderId: '',
+      driveInputFolderId: '',
+      coverPreviewUrl: '',
+      compareSelections: new Map(),
+      weakBooks: [],
+      regenResults: {},
+      activeTab: 'results',
+      defaultVariantsPerModel: 5,
+      maxGenerationVariants: 20,
+      providerConnectivity: {},
+      providerConnectivityCheckedAt: '',
+      providerConnectivityError: '',
+      baseStatus: 'Loading...',
+      modelSelection: new Set(),
+      modelSelectionTouched: false,
+      heartbeat: null,
+      jobEventSource: null,
+      modelCosts: {},
+      modelCompare: [],
+      recommendedModel: '',
+      templates: [],
+      selectedTemplateId: '',
+      templateGenreFilter: '',
+      budgetPresets: [],
+      selectedBudgetPreset: 'balanced',
+      driveOutputFolderId: '',
+      uiMode: 'advanced',
+      quickModels: [],
+      latestJobId: '',
+      modelProgress: {},
+      runStartedAt: '',
+      currentRunSummary: null,
+      sessionCostUsd: 0,
+      sessionRuns: 0,
+      todayCostUsd: 0,
+      todayRuns: 0,
+      selectedLibraryPromptId: '',
+      requestedPromptId: '',
+      recentGenerations: [],
+      notifications: [],
+      resultsByKey: new Map(),
+      zoomCache: new Map(),
+      heartbeatRenderTimer: null,
+      dismissedResults: new Set(),
+    };
+
+    /* ─── Toast Notification System ─── */
+    function showToast(message, type = 'info', duration = 3500) {
+      const container = qs('toastContainer');
+      if (!container) return;
+      const icons = { success: '\u2714', error: '\u2718', info: '\u2139' };
+      const toast = document.createElement('div');
+      toast.className = `toast toast-${type}`;
+      toast.innerHTML = `<span class="toast-icon">${icons[type] || icons.info}</span><span>${escapeHtml(message)}</span>`;
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.classList.add('toast-out');
+        toast.addEventListener('animationend', () => toast.remove());
+      }, duration);
+    }
+
+    /* ─── Button Loading State Helpers ─── */
+    function btnStartLoading(btn, loadingText) {
+      if (!btn || btn.classList.contains('btn-loading')) return false;
+      btn._originalText = btn.textContent;
+      btn.textContent = loadingText || btn.textContent;
+      btn.classList.add('btn-loading');
+      btn.disabled = true;
+      return true;
+    }
+
+    function btnStopLoading(btn, success = true) {
+      if (!btn) return;
+      btn.classList.remove('btn-loading');
+      btn.disabled = false;
+      btn.textContent = btn._originalText || btn.textContent;
+      const flashClass = success ? 'btn-success' : 'btn-error';
+      btn.classList.add(flashClass);
+      setTimeout(() => btn.classList.remove(flashClass), 800);
+    }
+
+    function qs(id) { return document.getElementById(id); }
+    function catalogQuery() { return `catalog=${encodeURIComponent(app.catalog)}`; }
+    const ITERATE_DATA_PAGE_SIZE = 500;
+    const ITERATE_DATA_MAX_PAGES = 50;
+    async function fetchJson(url, { timeoutMs = 12000, options = {} } = {}) {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), Math.max(500, Number(timeoutMs) || 12000));
+      try {
+        const res = await fetch(url, { ...options, signal: controller.signal });
+        let data = {};
+        try {
+          data = await res.json();
+        } catch (_) {
+          data = {};
+        }
+        return { res, data };
+      } catch (error) {
+        if (error && error.name === 'AbortError') {
+          const secs = Math.max(1, Math.round((Number(timeoutMs) || 12000) / 1000));
+          throw new Error(`Request timed out after ${secs}s`);
+        }
+        throw error;
+      } finally {
+        clearTimeout(timer);
+      }
+    }
+
+    function mergeBookRows(rows) {
+      const byNumber = new Map();
+      const withoutNumber = [];
+      (rows || []).forEach((row) => {
+        if (!row || typeof row !== 'object') return;
+        const bookNumber = Number(row.number || 0);
+        if (bookNumber > 0) {
+          if (!byNumber.has(bookNumber)) byNumber.set(bookNumber, row);
+          return;
+        }
+        withoutNumber.push(row);
+      });
+      const numbered = Array.from(byNumber.entries())
+        .sort((a, b) => a[0] - b[0])
+        .map((entry) => entry[1]);
+      return numbered.concat(withoutNumber);
+    }
+
+    async function fetchAllIterateData({ timeoutMs = 15000 } = {}) {
+      const makeUrl = (offset) => `/api/iterate-data?${catalogQuery()}&limit=${ITERATE_DATA_PAGE_SIZE}&offset=${Math.max(0, Number(offset) || 0)}`;
+      const { res, data } = await fetchJson(makeUrl(0), { timeoutMs });
+      if (!res.ok) return { res, data };
+
+      let books = Array.isArray(data.books) ? data.books.slice() : [];
+      let pagination = (data && typeof data.pagination === 'object' && data.pagination) ? data.pagination : {};
+      let hasMore = Boolean(pagination.has_more);
+      let limit = Math.max(1, Number(pagination.limit || ITERATE_DATA_PAGE_SIZE));
+      let offset = Math.max(0, Number(pagination.offset || 0));
+      let pagesFetched = 1;
+
+      while (hasMore && pagesFetched < ITERATE_DATA_MAX_PAGES) {
+        offset += limit;
+        const { res: pageRes, data: pageData } = await fetchJson(makeUrl(offset), { timeoutMs });
+        if (!pageRes.ok) break;
+        const pageBooks = Array.isArray(pageData.books) ? pageData.books : [];
+        books = books.concat(pageBooks);
+        pagination = (pageData && typeof pageData.pagination === 'object' && pageData.pagination) ? pageData.pagination : {};
+        hasMore = Boolean(pagination.has_more) && pageBooks.length > 0;
+        limit = Math.max(1, Number(pagination.limit || ITERATE_DATA_PAGE_SIZE));
+        pagesFetched += 1;
+      }
+
+      const mergedBooks = mergeBookRows(books);
+      const totalBooks = Math.max(Number(data.total_books || 0), mergedBooks.length);
+      const mergedData = Object.assign({}, data, {
+        books: mergedBooks,
+        total_books: totalBooks,
+        pagination: {
+          total: totalBooks,
+          limit: mergedBooks.length || 1,
+          offset: 0,
+          has_more: false,
+        },
+      });
+      return { res, data: mergedData };
+    }
+
+    function revokeCoverPreviewUrl() {
+      if (app.coverPreviewUrl && String(app.coverPreviewUrl).startsWith('blob:')) {
+        try { URL.revokeObjectURL(app.coverPreviewUrl); } catch (_) {}
+      }
+      app.coverPreviewUrl = '';
+    }
+
+    async function fetchCoverSourceDefault({ silent = true } = {}) {
+      try {
+        const { res, data } = await fetchJson(`/api/config/cover-source-default?${catalogQuery()}`, { timeoutMs: 8000 });
+        if (!res.ok || !data.ok) return false;
+        const token = (data.default === 'drive') ? 'drive' : 'catalog';
+        app.defaultCoverSource = token;
+        if (!app.coverSource || !['catalog', 'drive'].includes(app.coverSource)) {
+          app.coverSource = token;
+        } else {
+          app.coverSource = token;
+        }
+        if (!silent) showToast(`Default cover source: ${token}.`, 'info', 1800);
+        return true;
+      } catch (_) {
+        return false;
+      }
+    }
+
+    async function refreshCoverPreview({ silent = true } = {}) {
+      const status = qs('coverPreviewStatus');
+      const image = qs('coverPreviewImg');
+      const book = currentBook();
+      if (!status || !image) return false;
+      if (!book || Number(book.number || 0) <= 0) {
+        revokeCoverPreviewUrl();
+        image.classList.add('picker-hidden');
+        status.textContent = 'No book selected.';
+        return false;
+      }
+      status.textContent = app.coverSource === 'drive'
+        ? 'Loading cover preview from Google Drive...'
+        : 'Loading local cover preview...';
+      const params = new URLSearchParams({
+        source: app.coverSource === 'drive' ? 'drive' : 'catalog',
+      });
+      if (app.coverSource === 'drive') {
+        const selected = selectedDriveCover();
+        const selectedId = String((selected && selected.id) || app.selectedDriveCoverId || '').trim();
+        if (selectedId) params.set('selected_cover_id', selectedId);
+      }
+      const url = `/api/books/${encodeURIComponent(Number(book.number))}/cover-preview?${params.toString()}&${catalogQuery()}`;
+      try {
+        const response = await fetch(url);
+        if (!response.ok) {
+          let errorMessage = 'Cover preview unavailable.';
+          try {
+            const payload = await response.json();
+            errorMessage = String(payload.error || payload.message || errorMessage);
+          } catch (_) {
+          }
+          revokeCoverPreviewUrl();
+          image.classList.add('picker-hidden');
+          status.textContent = errorMessage;
+          if (!silent) showToast(errorMessage, 'error');
+          return false;
+        }
+        const blob = await response.blob();
+        const objectUrl = URL.createObjectURL(blob);
+        revokeCoverPreviewUrl();
+        app.coverPreviewUrl = objectUrl;
+        image.src = objectUrl;
+        image.classList.remove('picker-hidden');
+        status.textContent = app.coverSource === 'drive'
+          ? 'Preview from Google Drive source cover.'
+          : 'Preview from local source cover.';
+        return true;
+      } catch (error) {
+        const message = (error && error.message) ? error.message : String(error || 'Preview load failed.');
+        revokeCoverPreviewUrl();
+        image.classList.add('picker-hidden');
+        status.textContent = message;
+        if (!silent) showToast(`Cover preview failed: ${message}`, 'error');
+        return false;
+      }
+    }
+
+    function nowIso() {
+      return new Date().toISOString();
+    }
+
+    function startHeartbeatAutoRefresh() {
+      stopHeartbeatAutoRefresh();
+      app.heartbeatRenderTimer = window.setInterval(() => {
+        const hb = app.heartbeat || {};
+        const status = String(hb.status || '');
+        if (['submitting', 'queued', 'running', 'stream-stalled', 'polling'].includes(status)) {
+          renderHeartbeat();
+        }
+      }, 1000);
+    }
+
+    function stopHeartbeatAutoRefresh() {
+      if (app.heartbeatRenderTimer) {
+        try { clearInterval(app.heartbeatRenderTimer); } catch (_) {}
+        app.heartbeatRenderTimer = null;
+      }
+    }
+
+    function resultKey(item) {
+      const model = String(item && item.model ? item.model : 'unknown');
+      const variant = Number(item && (item.variant || item.variant_id) ? (item.variant || item.variant_id) : 0);
+      return `${model}::${variant}`;
+    }
+
+    function humanDuration(seconds) {
+      const total = Math.max(0, Number(seconds || 0));
+      if (!Number.isFinite(total) || total <= 0) return '0s';
+      const whole = Math.round(total);
+      const m = Math.floor(whole / 60);
+      const s = whole % 60;
+      if (m <= 0) return `${s}s`;
+      return `${m}m ${s}s`;
+    }
+
+    function pushNotification(message, type = 'info') {
+      const entry = {
+        id: `${Date.now()}-${Math.random().toString(16).slice(2, 8)}`,
+        message: String(message || ''),
+        type,
+        at: nowIso(),
+      };
+      app.notifications.unshift(entry);
+      app.notifications = app.notifications.slice(0, 100);
+      renderNotificationPanel();
+    }
+
+    function renderNotificationPanel() {
+      const count = app.notifications.filter(item => !item.read).length;
+      const countNode = qs('notificationCount');
+      if (countNode) countNode.textContent = String(Math.max(0, count));
+      const list = qs('notificationList');
+      if (!list) return;
+      if (!app.notifications.length) {
+        list.innerHTML = '<div class="list-item"><em>No notifications yet.</em></div>';
+        return;
+      }
+      list.innerHTML = app.notifications.map(item => `
+        <div class="list-item">
+          <strong>${escapeHtml(String(item.type || 'info').toUpperCase())}</strong><br>
+          ${escapeHtml(item.message || '')}<br>
+          <small>${escapeHtml(new Date(item.at || Date.now()).toLocaleString())}</small>
+        </div>
+      `).join('');
+    }
+
+    function toggleNotifications(forceOpen) {
+      const panel = qs('notificationPanel');
+      if (!panel) return;
+      const open = typeof forceOpen === 'boolean' ? forceOpen : panel.classList.contains('picker-hidden');
+      panel.classList.toggle('picker-hidden', !open);
+      if (open) {
+        app.notifications = app.notifications.map(item => Object.assign({}, item, { read: true }));
+        renderNotificationPanel();
+      }
+    }
+
+    function loadSessionCostTracker() {
+      const token = localStorage.getItem('iterateSessionCostV2');
+      if (!token) return;
+      try {
+        const payload = JSON.parse(token);
+        const today = new Date().toISOString().slice(0, 10);
+        app.sessionCostUsd = Number(payload.sessionCostUsd || 0);
+        app.sessionRuns = Number(payload.sessionRuns || 0);
+        if (String(payload.day || '') === today) {
+          app.todayCostUsd = Number(payload.todayCostUsd || 0);
+          app.todayRuns = Number(payload.todayRuns || 0);
+        } else {
+          app.todayCostUsd = 0;
+          app.todayRuns = 0;
+        }
+      } catch (_) {
+      }
+    }
+
+    function saveSessionCostTracker() {
+      const day = new Date().toISOString().slice(0, 10);
+      localStorage.setItem(
+        'iterateSessionCostV2',
+        JSON.stringify({
+          day,
+          sessionCostUsd: Number(app.sessionCostUsd || 0),
+          sessionRuns: Number(app.sessionRuns || 0),
+          todayCostUsd: Number(app.todayCostUsd || 0),
+          todayRuns: Number(app.todayRuns || 0),
+        })
+      );
+    }
+
+    function renderCostTracker() {
+      const node = qs('costTracker');
+      if (!node) return;
+      node.textContent = `Today: $${Number(app.todayCostUsd || 0).toFixed(2)} (${Number(app.todayRuns || 0)} runs) • Session: $${Number(app.sessionCostUsd || 0).toFixed(2)} (${Number(app.sessionRuns || 0)} runs)`;
+    }
+
+    function applyRunCostSummary(summary) {
+      if (!summary) return;
+      app.currentRunSummary = summary;
+      app.sessionCostUsd = Number(app.sessionCostUsd || 0) + Number(summary.totalCostUsd || 0);
+      app.sessionRuns = Number(app.sessionRuns || 0) + 1;
+      app.todayCostUsd = Number(app.todayCostUsd || 0) + Number(summary.totalCostUsd || 0);
+      app.todayRuns = Number(app.todayRuns || 0) + 1;
+      saveSessionCostTracker();
+      renderCostTracker();
+      renderRunSummaryBanner();
+      app.recentGenerations.unshift({
+        at: nowIso(),
+        summary,
+        thumb: String(summary.firstThumb || ''),
+        model: String(summary.topModel || ''),
+        quality: Number(summary.avgQuality || 0),
+      });
+      app.recentGenerations = app.recentGenerations.slice(0, 10);
+      localStorage.setItem('iterateRecentGenerationsV2', JSON.stringify(app.recentGenerations));
+      renderRecentGenerations();
+    }
+
+    function loadRecentGenerations() {
+      const raw = localStorage.getItem('iterateRecentGenerationsV2');
+      if (!raw) return;
+      try {
+        const rows = JSON.parse(raw);
+        if (Array.isArray(rows)) app.recentGenerations = rows.slice(0, 10);
+      } catch (_) {
+      }
+    }
+
+    function renderRecentGenerations() {
+      const list = qs('recentGenerationsList');
+      if (!list) return;
+      if (!app.recentGenerations.length) {
+        list.innerHTML = '<div class="list-item"><em>No runs in this browser session yet.</em></div>';
+        return;
+      }
+      list.innerHTML = app.recentGenerations.map((row, idx) => `
+        <div class="list-item">
+          <div><strong>${escapeHtml(row.model || 'run')}</strong> · ${escapeHtml(new Date(row.at || Date.now()).toLocaleString())}</div>
+          <div>cost $${Number(row.summary && row.summary.totalCostUsd || 0).toFixed(3)} · images ${Number(row.summary && row.summary.totalImages || 0)}</div>
+          <div>time ${escapeHtml(humanDuration(Number(row.summary && row.summary.totalSeconds || 0)))}</div>
+          ${row.thumb ? `<img src="${escapeHtml(row.thumb)}" alt="recent thumbnail" />` : ''}
+          <button type="button" class="secondary u-mt-6" data-recent-compare="${idx}">Compare with current</button>
+        </div>
+      `).join('');
+      list.querySelectorAll('[data-recent-compare]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          showToast('Recent comparison snapshot loaded.', 'info', 2200);
+        });
+      });
+    }
+
+    async function init() {
+      try {
+        loadSessionCostTracker();
+        loadRecentGenerations();
+        renderCostTracker();
+        renderRecentGenerations();
+        renderNotificationPanel();
+
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('catalog')) app.catalog = params.get('catalog');
+        const requestedMode = String(params.get('mode') || '').trim().toLowerCase();
+        app.requestedPromptId = String(params.get('prompt_id') || '').trim();
+        if (requestedMode === 'quick') app.uiMode = 'quick';
+        if (requestedMode === 'advanced') app.uiMode = 'advanced';
+
+        const { res: catalogRes, data: catalogData } = await fetchJson('/api/catalogs', { timeoutMs: 10000 });
+        if (!catalogRes.ok) throw new Error(catalogData.error || catalogData.message || 'Failed to load catalogs.');
+        app.catalogs = catalogData.catalogs || [];
+        if (!app.catalog && catalogData.active_catalog) app.catalog = catalogData.active_catalog;
+        renderCatalogs();
+
+        const { res, data } = await fetchAllIterateData({ timeoutMs: 15000 });
+        if (!res.ok) throw new Error(data.error || data.message || 'Failed to load iterate data.');
+        app.books = data.books || [];
+        app.models = data.models || [];
+        app.providers = data.providers || [];
+        app.providerModels = data.provider_models || {};
+        app.anchors = data.style_anchors || [];
+        app.promptLibrary = data.prompt_library || [];
+        app.intelligentPromptsAvailable = Boolean(data.intelligent_prompts_available);
+        app.enrichmentAvailable = Boolean(data.enrichment_available);
+        app.promptPerformance = data.prompt_performance || {};
+        app.promptSource = app.intelligentPromptsAvailable ? 'ai_generated' : 'template';
+        app.selectedProvider = 'all';
+        app.defaultVariantsPerModel = Number(data.default_variants_per_model || 5);
+        app.maxGenerationVariants = Math.max(app.defaultVariantsPerModel, Number(data.max_generation_variants || 20));
+        app.modelCosts = data.model_costs || {};
+        app.templates = Array.isArray(data.templates) ? data.templates : [];
+        app.selectedTemplateId = String(data.default_template_id || (app.templates[0] && app.templates[0].id) || '').trim();
+        app.budgetPresets = Array.isArray(data.budget_presets) ? data.budget_presets : [];
+        if (!app.budgetPresets.length) {
+          app.budgetPresets = [
+            { id: 'cheapest', name: 'Cheapest', models: ['openrouter/google/gemini-2.5-flash-image'], estimated_cost_per_image_usd: 0.003, description: 'Fast smoke tests, quick iteration' },
+            { id: 'balanced', name: 'Balanced', models: ['openrouter/google/gemini-2.5-flash-image', 'openrouter/openai/gpt-5-image-mini'], estimated_cost_per_image_usd: 0.015, description: 'Good quality at reasonable cost' },
+            { id: 'premium', name: 'Premium', models: ['openrouter/google/gemini-2.5-flash-image', 'openrouter/openai/gpt-5-image', 'fal/fal-ai/flux-2-pro'], estimated_cost_per_image_usd: 0.088, description: 'Best quality, all top models' },
+          ];
+        }
+        app.selectedBudgetPreset = app.budgetPresets.some(row => String(row.id).toLowerCase() === 'balanced')
+          ? 'balanced'
+          : String((app.budgetPresets[0] && app.budgetPresets[0].id) || 'cheapest').toLowerCase();
+        app.driveOutputFolderId = String(data.gdrive_output_folder_id || '');
+        app.defaultCoverSource = (data.default_cover_source === 'drive') ? 'drive' : 'catalog';
+        app.coverSource = app.defaultCoverSource;
+        app.modelSelectionTouched = false;
+        app.modelSelection = new Set();
+
+        await fetchCoverSourceDefault({ silent: true });
+
+        renderBooks();
+        renderCoverPickers();
+        renderProviders();
+        renderModels();
+        renderQuickControls();
+        renderPresetToggle();
+        renderAnchors();
+        renderTemplateControls();
+        renderLibrary();
+        if (app.requestedPromptId) {
+          const loaded = applyLibraryPrompt(app.requestedPromptId, { silent: true });
+          if (loaded) {
+            showToast(`Loaded prompt ${app.requestedPromptId} from URL.`, 'info', 2000);
+          } else {
+            showToast(`Prompt ${app.requestedPromptId} not found in this catalog.`, 'error', 2800);
+          }
+        }
+        applyVariationLimits();
+        qs('promptSource').value = app.promptSource;
+        bindEvents();
+        startHeartbeatAutoRefresh();
+        applyBudgetPreset(app.selectedBudgetPreset, { user: false, silent: true });
+        applyMode();
+        applyCoverSource();
+        await refreshCoverPreview({ silent: true });
+        setStatus(`Ready. Catalog: ${app.catalog}. Choose a book and generate.`);
+        resetHeartbeat('No generation started.');
+
+        // Non-critical requests run in the background so controls stay responsive.
+        refreshProviderConnectivity({ force: false, silent: false }).catch(() => {});
+        loadModelCompare()
+          .then(() => {
+            renderModelInfoPanel();
+            renderQuickControls();
+            applyModeRecommendations();
+          })
+          .catch(() => {
+            renderModelInfoPanel();
+            renderQuickControls();
+            applyModeRecommendations();
+          });
+
+      } catch (error) {
+        const message = (error && error.message) ? error.message : String(error || 'unknown error');
+        qs('status').textContent = `Failed to initialize iterate page: ${message}`;
+        showToast(`Initialize failed: ${message}`, 'error');
+      }
+    }
+
+    function connectivitySummaryText() {
+      const rows = Object.values(app.providerConnectivity || {});
+      const total = rows.length;
+      if (!total) return '';
+      const connected = rows.filter(row => String((row || {}).status || '') === 'connected').length;
+      return `${connected}/${total} providers connected`;
+    }
+
+    function refreshHeaderStatus() {
+      const summary = connectivitySummaryText();
+      const base = String(app.baseStatus || '').trim() || 'Ready.';
+      qs('status').textContent = summary ? `${base} ${summary}.` : base;
+    }
+
+    function setStatus(text) {
+      app.baseStatus = String(text || '');
+      refreshHeaderStatus();
+    }
+
+    function applyVariationLimits() {
+      const field = qs('variationCount');
+      const max = Math.max(1, Number(app.maxGenerationVariants || 20));
+      const fallback = Math.min(max, Math.max(1, Number(app.defaultVariantsPerModel || 5)));
+      field.min = '1';
+      field.max = String(max);
+      const current = Number(field.value || fallback);
+      field.value = String(Math.min(max, Math.max(1, current)));
+      field.title = `Allowed range: 1-${max}`;
+    }
+
+    function presetById(presetId) {
+      const token = String(presetId || '').trim().toLowerCase();
+      return (app.budgetPresets || []).find(row => String(row.id || '').trim().toLowerCase() === token) || null;
+    }
+
+    function renderPresetToggle() {
+      const rows = Array.isArray(app.budgetPresets) ? app.budgetPresets : [];
+      const statusNode = qs('presetStatus');
+      ['presetCheapest', 'presetBalanced', 'presetPremium'].forEach(id => {
+        const node = qs(id);
+        if (!node) return;
+        const token = String(node.getAttribute('data-preset') || '').trim().toLowerCase();
+        const active = token === String(app.selectedBudgetPreset || '').trim().toLowerCase();
+        node.classList.toggle('mode-active', active);
+        node.classList.toggle('secondary', !active);
+      });
+      const preset = presetById(app.selectedBudgetPreset);
+      if (!preset) {
+        if (statusNode) statusNode.textContent = 'Preset-driven model selection is available in Quick mode.';
+        return;
+      }
+      const cost = Number(preset.estimated_cost_per_image_usd || 0);
+      const models = Array.isArray(preset.models) ? preset.models.length : 0;
+      if (statusNode) statusNode.textContent = `${preset.name}: ${preset.description || ''} (${models} model(s), ~$${cost.toFixed(4)}/image).`;
+    }
+
+    function applyBudgetPreset(presetId, { user = true, silent = false } = {}) {
+      const preset = presetById(presetId);
+      if (!preset) return false;
+      const models = Array.isArray(preset.models) ? preset.models : [];
+      const available = models.filter(model => (app.models || []).includes(model));
+      if (!available.length) {
+        if (!silent) showToast(`Preset ${preset.name} has no models available in this deployment.`, 'error');
+        return false;
+      }
+      app.selectedBudgetPreset = String(preset.id || '').trim().toLowerCase();
+      app.modelSelectionTouched = Boolean(user);
+      app.modelSelection = new Set(available);
+      renderPresetToggle();
+      renderModels();
+      renderQuickControls();
+      loadCostProjection();
+      renderHeartbeat();
+      if (!silent) showToast(`Preset applied: ${preset.name}.`, 'success', 1600);
+      return true;
+    }
+
+    function templateRowsFiltered() {
+      const rows = Array.isArray(app.templates) ? app.templates : [];
+      const token = String(app.templateGenreFilter || '').trim().toLowerCase();
+      if (!token) return rows;
+      const filtered = rows.filter(row => {
+        const genres = Array.isArray(row.genres) ? row.genres : [];
+        return genres.map(item => String(item || '').trim().toLowerCase()).includes(token);
+      });
+      return filtered.length ? filtered : rows;
+    }
+
+    function currentTemplate() {
+      const rows = templateRowsFiltered();
+      return rows.find(row => String(row.id || '') === String(app.selectedTemplateId || '')) || rows[0] || null;
+    }
+
+    function renderTemplateControls() {
+      const templateSelect = qs('templateSelect');
+      const genreSelect = qs('templateGenreFilter');
+      const statusNode = qs('templateStatus');
+      if (!templateSelect || !genreSelect || !statusNode) return;
+
+      const templates = Array.isArray(app.templates) ? app.templates : [];
+      const allGenres = Array.from(
+        new Set(
+          templates.flatMap(row => (Array.isArray(row.genres) ? row.genres : []))
+            .map(item => String(item || '').trim().toLowerCase())
+            .filter(Boolean)
+        )
+      ).sort();
+
+      const genreOptions = ['<option value=\"\">All Genres</option>']
+        .concat(allGenres.map(genre => `<option value=\"${escapeHtml(genre)}\">${escapeHtml(genre)}</option>`));
+      genreSelect.innerHTML = genreOptions.join('');
+      genreSelect.value = allGenres.includes(String(app.templateGenreFilter || '').toLowerCase()) ? app.templateGenreFilter : '';
+      app.templateGenreFilter = genreSelect.value || '';
+
+      const filtered = templateRowsFiltered();
+      if (!filtered.length) {
+        templateSelect.innerHTML = '<option value=\"\">No templates available</option>';
+        statusNode.textContent = 'No template registry loaded.';
+        return;
+      }
+      if (!filtered.some(row => String(row.id || '') === String(app.selectedTemplateId || ''))) {
+        app.selectedTemplateId = String(filtered[0].id || '');
+      }
+      templateSelect.innerHTML = filtered.map(row => `<option value=\"${escapeHtml(row.id)}\">${escapeHtml(row.name || row.id)}</option>`).join('');
+      templateSelect.value = app.selectedTemplateId;
+      const selected = currentTemplate();
+      const genres = selected && Array.isArray(selected.genres) ? selected.genres.join(', ') : 'n/a';
+      statusNode.textContent = selected
+        ? `${selected.description || ''} Genres: ${genres}.`
+        : 'No template selected.';
+    }
+
+    function composePromptForBook(book, { basePromptOverride = '' } = {}) {
+      const template = currentTemplate();
+      const components = (book && typeof book.prompt_components === 'object' && book.prompt_components) ? book.prompt_components : {};
+      const fallbackBase = `Cinematic full-bleed narrative scene for ${book && book.title ? book.title : 'this title'}, single dominant focal subject, vivid painterly color, no text, no logos, no borders or frames`;
+      const basePrompt = String(basePromptOverride || components.base || book && book.default_prompt || fallbackBase).trim();
+      const templateModifier = String((template && template.prompt_modifier) || components.template || '').trim();
+      const genreModifier = String(components.genre_modifier || '').trim();
+      const genre = String((book && book.genre) || components.genre || 'literary_fiction').trim();
+      const titleKeywords = Array.isArray(components.title_keywords) ? components.title_keywords : [];
+      const negative = String(components.negative || 'text, letters, words, watermark, signature').trim();
+      const positiveParts = [basePrompt, templateModifier, genreModifier, titleKeywords.join(', ')].filter(Boolean);
+      const positivePrompt = positiveParts.join(', ');
+      const prompt = negative ? `${positivePrompt}, avoid: ${negative}` : positivePrompt;
+      return {
+        prompt,
+        basePrompt,
+        templateModifier,
+        genreModifier,
+        genre,
+        titleKeywords,
+        negative,
+      };
+    }
+
+    function renderPromptComposition(book, composed) {
+      const node = qs('promptComposition');
+      if (!node) return;
+      const details = composed || composePromptForBook(book || currentBook() || {});
+      node.innerHTML = [
+        `<strong>Composed Prompt:</strong> genre <code>${escapeHtml(details.genre || 'literary_fiction')}</code>`,
+        `<span>base: ${escapeHtml(shortPrompt(details.basePrompt || ''))}</span>`,
+        `<span>template: ${escapeHtml(shortPrompt(details.templateModifier || 'n/a'))}</span>`,
+        `<span>genre: ${escapeHtml(shortPrompt(details.genreModifier || 'n/a'))}</span>`,
+        `<span>keywords: ${escapeHtml((details.titleKeywords || []).join(', ') || 'n/a')}</span>`,
+      ].join('<br>');
+    }
+
+    function visibleModels() {
+      const provider = app.selectedProvider || 'all';
+      return provider === 'all' ? app.models : (app.providerModels[provider] || []);
+    }
+
+    function renderCatalogs() {
+      const select = qs('catalogSelect');
+      select.innerHTML = (app.catalogs || []).map(c => `<option value="${escapeHtml(c.id)}" ${c.id===app.catalog?'selected':''}>${escapeHtml(c.name || c.id)}</option>`).join('');
+    }
+
+    function renderBooks() {
+      qs('bookSelect').innerHTML = app.books.map(b => `<option value="${b.number}">${b.number}. ${escapeHtml(b.title)}</option>`).join('');
+      const quick = qs('quickBookSelect');
+      if (quick) {
+        quick.innerHTML = app.books.map(b => `<option value="${b.number}">${b.number}. ${escapeHtml(b.title)}</option>`).join('');
+      }
+    }
+
+    function quickModeModelOrder() {
+      const rows = Array.isArray(app.modelCompare) ? app.modelCompare : [];
+      const preferred = rows
+        .slice()
+        .sort((a, b) => Number(b.quality_per_dollar || 0) - Number(a.quality_per_dollar || 0))
+        .map(row => String(row.model || '').trim())
+        .filter(Boolean);
+      const fallback = (app.models || []).slice();
+      const merged = preferred.concat(fallback).filter((token, idx, arr) => token && arr.indexOf(token) === idx);
+      return merged;
+    }
+
+    function recommendedQuickModels() {
+      return quickModeModelOrder().slice(0, 3);
+    }
+
+    function applyModeRecommendations() {
+      const top = recommendedQuickModels();
+      app.quickModels = top;
+      const preset = presetById(app.selectedBudgetPreset);
+      if (!app.modelSelectionTouched && preset && Array.isArray(preset.models) && preset.models.length) {
+        const available = preset.models.filter(model => (app.models || []).includes(model));
+        if (available.length) {
+          app.modelSelection = new Set(available);
+          renderModels();
+          renderQuickControls();
+          renderPresetToggle();
+          return;
+        }
+      }
+      if (!app.modelSelectionTouched) {
+        app.modelSelection = new Set(top);
+      }
+      renderModels();
+      renderQuickControls();
+      renderPresetToggle();
+    }
+
+    function renderQuickControls() {
+      const quickBook = qs('quickBookSelect');
+      if (quickBook && !quickBook.value && app.books.length) {
+        quickBook.value = String(app.books[0].number);
+      }
+      const box = qs('quickModelsBox');
+      if (!box) return;
+      const ordered = quickModeModelOrder();
+      app.quickModels = recommendedQuickModels();
+      if (!ordered.length) {
+        box.innerHTML = '<em>No models available yet.</em>';
+        return;
+      }
+      box.innerHTML = ordered.map(model => {
+        const checked = app.modelSelection.has(model);
+        const cost = Number(app.modelCosts[model] || 0);
+        const recommended = app.quickModels.includes(model);
+        return `
+          <label>
+            <input type="checkbox" data-quick-model="${escapeHtml(model)}" ${checked ? 'checked' : ''} />
+            <span>${escapeHtml(model)}${recommended ? ' [recommended]' : ''}</span>
+            <small>$${cost.toFixed(4)}</small>
+          </label>
+        `;
+      }).join('');
+      box.querySelectorAll('[data-quick-model]').forEach(input => {
+        input.addEventListener('change', () => {
+          app.modelSelectionTouched = true;
+          const model = String(input.getAttribute('data-quick-model') || '').trim();
+          if (!model) return;
+          if (input.checked) app.modelSelection.add(model);
+          else app.modelSelection.delete(model);
+          renderModels();
+          loadCostProjection();
+          renderHeartbeat();
+        });
+      });
+      renderPresetToggle();
+    }
+
+    function applyMode() {
+      const quick = app.uiMode !== 'advanced';
+      app.uiMode = quick ? 'quick' : 'advanced';
+      document.body.classList.toggle('iterate-quick-mode', quick);
+      qs('quickControls').classList.toggle('picker-hidden', !quick);
+      qs('advancedControlsWrap').classList.toggle('picker-hidden', quick);
+      qs('quickModeBtn').classList.toggle('mode-active', quick);
+      qs('advancedModeBtn').classList.toggle('mode-active', !quick);
+      qs('quickModeBtn').classList.toggle('secondary', !quick);
+      qs('advancedModeBtn').classList.toggle('secondary', quick);
+      if (quick) {
+        const pick = Number(qs('quickBookSelect').value || 0);
+        if (pick > 0) qs('bookSelect').value = String(pick);
+      }
+    }
+
+    function setMode(mode) {
+      app.uiMode = mode === 'advanced' ? 'advanced' : 'quick';
+      applyMode();
+      const url = new URL(window.location.href);
+      url.searchParams.set('mode', app.uiMode);
+      window.history.replaceState({}, '', url.toString());
+    }
+
+    function renderCoverPickers() {
+      qs('coverSourceSelect').value = app.coverSource;
+      qs('refreshDriveCoversBtn').style.display = app.coverSource === 'drive' ? '' : 'none';
+      const driveInfo = qs('driveOutputInfo');
+      driveInfo.textContent = app.driveOutputFolderId
+        ? `Picked covers sync target: Google Drive folder ${app.driveOutputFolderId}.`
+        : 'Google Drive output folder is not configured.';
+    }
+
+    function applyCoverSource() {
+      const useDrive = app.coverSource === 'drive';
+      qs('catalogBookPicker').classList.toggle('picker-hidden', useDrive);
+      qs('driveCoverPicker').classList.toggle('picker-hidden', !useDrive);
+      qs('refreshDriveCoversBtn').style.display = useDrive ? '' : 'none';
+      if (useDrive) {
+        renderDriveCovers();
+        onDriveCoverChange({ silent: false });
+      } else {
+        onBookChange();
+      }
+      refreshCoverPreview({ silent: true }).catch(() => {});
+    }
+
+    function renderDriveCovers() {
+      const select = qs('driveCoverSelect');
+      const rows = Array.isArray(app.driveCovers) ? app.driveCovers : [];
+      if (!rows.length) {
+        app.selectedDriveCoverId = '';
+        select.innerHTML = '<option value="">No Drive covers found</option>';
+        return;
+      }
+      select.innerHTML = rows.map(row => {
+        const book = Number(row.book_number || 0);
+        const title = String(row.title || '').trim();
+        const base = book > 0
+          ? `${book}. ${title || row.name}`
+          : String(row.name || '');
+        const suffix = String(row.kind || '').toLowerCase() === 'folder' ? ' (folder)' : '';
+        return `<option value="${escapeHtml(row.id)}">${escapeHtml(base + suffix)}</option>`;
+      }).join('');
+      if (!app.selectedDriveCoverId || !rows.some(row => String(row.id) === String(app.selectedDriveCoverId))) {
+        app.selectedDriveCoverId = String(rows[0].id || '');
+      }
+      select.value = app.selectedDriveCoverId;
+    }
+
+    function selectedDriveCover() {
+      return (app.driveCovers || []).find(row => String(row.id) === String(app.selectedDriveCoverId)) || null;
+    }
+
+    function onDriveCoverChange({ silent = false } = {}) {
+      app.selectedDriveCoverId = String(qs('driveCoverSelect').value || app.selectedDriveCoverId || '');
+      const selected = selectedDriveCover();
+      const statusNode = qs('driveCoverStatus');
+      if (!selected) {
+        statusNode.textContent = 'No Drive cover selected.';
+        renderWinnerDownloadButton(null);
+        return;
+      }
+      const book = Number(selected.book_number || 0);
+      if (book <= 0) {
+        statusNode.textContent = 'Selected cover does not map to a catalog book number.';
+        renderWinnerDownloadButton(null);
+        return;
+      }
+      const bookExists = app.books.some(row => Number(row.number) === book);
+      if (!bookExists) {
+        statusNode.textContent = `Mapped to book ${book}, but it is not available in this catalog scope.`;
+        renderWinnerDownloadButton(null);
+        return;
+      }
+      qs('bookSelect').value = String(book);
+      statusNode.textContent = `Mapped to book ${book}. ${selected.title || ''}`.trim();
+      if (!silent) onBookChange();
+      refreshCoverPreview({ silent: true }).catch(() => {});
+    }
+
+    async function loadDriveCovers({ silent = false, force = false } = {}) {
+      const statusNode = qs('driveCoverStatus');
+      const refreshBtn = qs('refreshDriveCoversBtn');
+      const previous = app.selectedDriveCoverId;
+      refreshBtn.disabled = true;
+      statusNode.textContent = 'Loading Drive covers...';
+      try {
+        const forceToken = force ? '&force=1' : '';
+        const { res, data } = await fetchJson(`/api/drive/input-covers?limit=5000${forceToken}&${catalogQuery()}`, { timeoutMs: 20000 });
+        if (!res.ok) {
+          const message = data.error || data.message || 'Drive cover load failed.';
+          throw new Error(message);
+        }
+        const covers = Array.isArray(data.covers) ? data.covers : [];
+        app.driveCovers = covers;
+        app.driveFolderId = String(data.drive_folder_id || app.driveFolderId || '');
+        app.driveInputFolderId = String(data.input_folder_id || app.driveInputFolderId || '');
+        app.selectedDriveCoverId = covers.some(row => String(row.id) === String(previous)) ? String(previous) : '';
+        renderDriveCovers();
+        if (app.coverSource === 'drive') {
+          onDriveCoverChange({ silent: true });
+        }
+        const mode = String(data.mode || 'unknown');
+        const count = Number(data.count || covers.length || 0);
+        const total = Number(data.total || count || 0);
+        if (data.error) {
+          statusNode.textContent = `Drive error: ${data.error}`;
+          if (!silent) setStatus('Google Drive cover list unavailable.');
+          if (!silent) showToast(`Drive error: ${data.error}`, 'error');
+          return false;
+        }
+        statusNode.textContent = `Loaded ${count} cover item(s) from ${mode}${total > count ? ` (showing first ${count} of ${total})` : ''}.`;
+        if (!silent) showToast(`Loaded ${count} Drive cover item(s).`, 'success', 2200);
+        return true;
+      } catch (error) {
+        const message = (error && error.message) ? error.message : String(error || 'unknown error');
+        statusNode.textContent = `Drive error: ${message}`;
+        if (!silent) setStatus('Failed to load Google Drive covers.');
+        if (!silent) showToast(`Drive load failed: ${message}`, 'error');
+        return false;
+      } finally {
+        refreshBtn.disabled = false;
+      }
+    }
+
+    function renderProviders() {
+      const providers = ['all'].concat(app.providers);
+      qs('providerSelect').innerHTML = providers.map(p => {
+        if (p === 'all') return `<option value="${p}" ${p===app.selectedProvider?'selected':''}>${p}</option>`;
+        const row = app.providerConnectivity[p] || null;
+        const marker = row ? (String(row.status) === 'connected' ? '[OK] ' : '[X] ') : '';
+        return `<option value="${p}" ${p===app.selectedProvider?'selected':''}>${marker}${escapeHtml(p)}</option>`;
+      }).join('');
+    }
+
+    function modelProvider(model) {
+      const token = String(model || '');
+      for (const provider of app.providers || []) {
+        if (token.startsWith(`${provider}/`)) return provider;
+      }
+      for (const [provider, models] of Object.entries(app.providerModels || {})) {
+        if ((models || []).includes(token)) return provider;
+      }
+      return '';
+    }
+
+    function providerDisabled(provider) {
+      const row = app.providerConnectivity[provider] || null;
+      if (!row) return false;
+      return String(row.status || '') !== 'connected';
+    }
+
+    function renderProviderConnectivityStatus() {
+      const rows = app.providerConnectivity || {};
+      const keys = Object.keys(rows);
+      if (!keys.length) {
+        qs('providerStatus').textContent = 'Provider connectivity: not checked.';
+        qs('providerConnectivityList').textContent = '';
+        refreshHeaderStatus();
+        return;
+      }
+      const connected = keys.filter(key => String((rows[key] || {}).status || '') === 'connected').length;
+      qs('providerStatus').textContent = `Provider connectivity: ${connected}/${keys.length} connected`;
+      qs('providerConnectivityList').innerHTML = keys.map(key => {
+        const row = rows[key] || {};
+        const status = String(row.status || '');
+        const label = status === 'connected' ? 'OK' : 'X';
+        const models = Number(row.models || 0);
+        const error = row.error ? ` - ${escapeHtml(String(row.error))}` : '';
+        return `<div>${label} ${escapeHtml(key)} (${models} models)${error}</div>`;
+      }).join('');
+      refreshHeaderStatus();
+    }
+
+    function renderModels() {
+      const models = visibleModels();
+      const box = qs('modelsBox');
+      syncModelSelection();
+      if (!models.length) {
+        box.innerHTML = '<em>No models for provider.</em>';
+        renderModelInfoPanel();
+        return;
+      }
+      box.innerHTML = models.map(m => {
+        const modelProv = modelProvider(m);
+        const disabled = modelProv && providerDisabled(modelProv);
+        const checked = app.modelSelection.has(m);
+        const attrs = `${disabled ? 'disabled' : ''} ${checked ? 'checked' : ''}`.trim();
+        const reason = disabled ? (app.providerConnectivity[modelProv] && app.providerConnectivity[modelProv].error ? String(app.providerConnectivity[modelProv].error) : 'Provider unavailable') : '';
+        const title = reason ? ` title="${escapeHtml(reason)}"` : '';
+        return `<label><input type="checkbox" value="${escapeHtml(m)}" ${attrs}${title} /> ${escapeHtml(m)}${disabled ? ' [disabled]' : ''}</label>`;
+      }).join('');
+      box.querySelectorAll('input[type="checkbox"]').forEach(input => {
+        input.addEventListener('change', () => {
+          app.modelSelectionTouched = true;
+          if (input.checked) app.modelSelection.add(input.value);
+          else app.modelSelection.delete(input.value);
+          renderQuickControls();
+          loadCostProjection();
+          renderHeartbeat();
+        });
+      });
+      renderModelInfoPanel();
+    }
+
+    async function loadModelCompare() {
+      try {
+        const { res, data } = await fetchJson(`/api/analytics/models/compare?${catalogQuery()}`, { timeoutMs: 8000 });
+        if (!res.ok || !data.ok) return false;
+        app.modelCompare = Array.isArray(data.models) ? data.models : [];
+        app.recommendedModel = String(data.recommended_model || '');
+        return true;
+      } catch (err) {
+        return false;
+      }
+    }
+
+    function renderModelInfoPanel() {
+      const node = qs('modelInfoPanel');
+      if (!node) return;
+      const selected = selectedModels();
+      const rowsRaw = Array.isArray(app.modelCompare) ? app.modelCompare : [];
+      const rows = rowsRaw.filter(row => selected.includes(String(row.model || '')));
+      const fallbackRows = selected.map(model => ({
+        model,
+        avg_cost_per_variant: Number(app.modelCosts[model] || 0),
+        avg_generation_time_seconds: 0,
+        avg_quality: 0,
+      }));
+      const displayRows = rows.length ? rows : fallbackRows;
+      if (!displayRows.length) {
+        node.innerHTML = '<div class="model-info-header">Model Pricing &amp; Speed</div><div class="status">Select model(s) to see cost/speed guidance.</div>';
+        return;
+      }
+
+      let cheapest = displayRows[0];
+      displayRows.forEach(row => {
+        if (Number(row.avg_cost_per_variant || 999) < Number(cheapest.avg_cost_per_variant || 999)) cheapest = row;
+      });
+      const recommended = app.recommendedModel && displayRows.some(row => String(row.model || '') === app.recommendedModel)
+        ? app.recommendedModel
+        : String(cheapest.model || '');
+
+      node.innerHTML = `
+        <div class="model-info-header">Model Pricing &amp; Speed</div>
+        <table class="model-info-table">
+          <thead>
+            <tr><th>Model</th><th>Cost/img</th><th>Speed</th><th>Quality</th></tr>
+          </thead>
+          <tbody>
+            ${displayRows.map(row => {
+              const model = String(row.model || '');
+              const cheapestClass = model === String(cheapest.model || '') ? ' class="model-cheapest"' : '';
+              const cost = Number(row.avg_cost_per_variant || app.modelCosts[model] || 0);
+              const speed = Number(row.avg_generation_time_seconds || 0);
+              const quality = Number(row.avg_quality || 0);
+              const qualityLabel = quality >= 85 ? 'Great' : quality >= 70 ? 'Good' : quality > 0 ? 'Fair' : 'n/a';
+              const speedLabel = speed > 0 ? `~${Math.max(1, Math.round(speed))}s` : 'n/a';
+              return `<tr${cheapestClass}><td>${escapeHtml(model)}</td><td>$${cost.toFixed(4)}</td><td>${speedLabel}</td><td>${qualityLabel}</td></tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+        <p class="model-recommendation">Recommended now: ${escapeHtml(recommended)}. Cheapest now: ${escapeHtml(String(cheapest.model || 'n/a'))}.</p>
+      `;
+    }
+
+    async function loadCostProjection() {
+      const models = selectedModels();
+      const book = currentBook();
+      if (!book || !models.length) return;
+      const variants = Math.max(1, Number(qs('variationCount').value || app.defaultVariantsPerModel || 1));
+      const url = `/api/analytics/cost-projection?${catalogQuery()}&books=1&variants=${encodeURIComponent(variants)}&models=${encodeURIComponent(models.join(','))}`;
+      try {
+        const { res, data } = await fetchJson(url, { timeoutMs: 7000 });
+        if (!res.ok || !data.ok) return;
+        const summary = `Estimated: $${Number(data.estimatedCostUsd || 0).toFixed(3)} for ${Number(data.totalImages || 0)} images (${models.length} model(s) × ${variants} variants).`;
+        setStatus(summary);
+      } catch (_) {
+      }
+    }
+
+    function syncModelSelection() {
+      const allowed = new Set(app.models || []);
+      const next = new Set();
+      if (app.modelSelection instanceof Set) {
+        app.modelSelection.forEach(model => {
+          if (allowed.has(model)) next.add(model);
+        });
+      }
+      if (!app.modelSelectionTouched) {
+        next.clear();
+        const preset = presetById(app.selectedBudgetPreset);
+        const presetModels = preset && Array.isArray(preset.models) ? preset.models : [];
+        const recommended = recommendedQuickModels();
+        const seedModels = presetModels.length ? presetModels : (recommended.length ? recommended : (app.models || []).slice(0, 3));
+        seedModels.forEach(model => {
+          const provider = modelProvider(model);
+          if (provider && providerDisabled(provider)) return;
+          next.add(model);
+        });
+      }
+      if (!next.size && app.models.length) {
+        next.add(app.models[0]);
+      }
+      app.modelSelection = next;
+    }
+
+    async function refreshProviderConnectivity({ force = false, silent = false } = {}) {
+      try {
+        if (!silent) qs('providerStatus').textContent = 'Checking provider connectivity...';
+        const url = `/api/providers/connectivity?${catalogQuery()}${force ? '&force=1' : ''}`;
+        const { res, data } = await fetchJson(url, { timeoutMs: force ? 10000 : 8000 });
+        if (!res.ok || !data.ok) {
+          app.providerConnectivityError = data.error || data.message || 'Connectivity check failed.';
+          if (!silent) qs('providerStatus').textContent = app.providerConnectivityError;
+          return false;
+        }
+        app.providerConnectivity = data.providers || {};
+        app.providerConnectivityCheckedAt = data.checked_at || '';
+        app.providerConnectivityError = '';
+        renderProviders();
+        renderModels();
+        renderProviderConnectivityStatus();
+        return true;
+      } catch (error) {
+        app.providerConnectivityError = (error && error.message) ? error.message : String(error || 'unknown error');
+        if (!silent) qs('providerStatus').textContent = `Connectivity check failed: ${app.providerConnectivityError}`;
+        return false;
+      }
+    }
+
+    function renderAnchors() {
+      const wrap = qs('anchorChips');
+      wrap.innerHTML = app.anchors.map(a => `<div class="chip" data-name="${escapeHtml(a.name)}" title="${escapeHtml(a.description || '')}">${escapeHtml(a.name)}</div>`).join('');
+      wrap.querySelectorAll('.chip').forEach(chip => {
+        chip.addEventListener('click', () => {
+          const name = chip.dataset.name;
+          if (app.selectedAnchors.has(name)) app.selectedAnchors.delete(name);
+          else app.selectedAnchors.add(name);
+          chip.classList.toggle('active');
+          rebuildPromptFromAnchors();
+        });
+      });
+    }
+
+    function applyLibraryPrompt(promptId, { silent = false } = {}) {
+      const token = String(promptId || '').trim();
+      if (!token) return false;
+      const item = app.promptLibrary.find(prompt => String(prompt.id || '') === token);
+      if (!item) return false;
+      const book = currentBook() || {};
+      const compiledPrompt = String(item.prompt_template || '')
+        .replaceAll('{title}', String(book.title || ''))
+        .replaceAll('{author}', String(book.author || ''))
+        .replaceAll('{genre}', String(book.genre || ''));
+      app.promptSource = 'library';
+      app.selectedLibraryPromptId = token;
+      qs('promptSource').value = app.promptSource;
+      qs('promptEditor').value = compiledPrompt;
+      qs('promptQuality').textContent = 'Prompt quality: n/a (library mode)';
+      renderPromptComposition(book, composePromptForBook(book, { basePromptOverride: compiledPrompt }));
+      if (!silent) showToast(`Loaded library prompt: ${item.name || token}.`, 'success', 1800);
+      return true;
+    }
+
+    function renderLibrary() {
+      const filter = (qs('libraryFilter').value || '').toLowerCase();
+      const list = qs('libraryList');
+      const filtered = app.promptLibrary.filter(p => (`${p.name} ${(p.tags||[]).join(' ')}`).toLowerCase().includes(filter));
+      list.innerHTML = filtered.map(prompt => `
+        <div class="list-item">
+          <strong>${escapeHtml(prompt.name)}</strong><br>
+          <small>score: ${Number(prompt.quality_score || 0).toFixed(3)} | model: ${escapeHtml(prompt.source_model || 'n/a')}</small><br>
+          <button data-id="${escapeHtml(prompt.id)}" class="u-mt-6">Load</button>
+        </div>
+      `).join('');
+      list.querySelectorAll('button[data-id]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          applyLibraryPrompt(btn.dataset.id);
+        });
+      });
+    }
+
+    function currentBook() {
+      if (app.coverSource === 'drive') {
+        const selected = selectedDriveCover();
+        const mappedBook = Number(selected && selected.book_number ? selected.book_number : 0);
+        if (mappedBook > 0) {
+          const row = app.books.find(b => Number(b.number) === mappedBook);
+          if (row) return row;
+        }
+      }
+      const id = Number(qs('bookSelect').value);
+      return app.books.find(b => Number(b.number) === id) || app.books[0];
+    }
+
+    function localCoverAvailable(bookNumber) {
+      const row = app.books.find(b => Number(b.number) === Number(bookNumber));
+      if (!row) return false;
+      return row.local_cover_available !== false;
+    }
+
+    function currentSmartPrompts(book) {
+      const row = (book && Array.isArray(book.smart_prompts)) ? book.smart_prompts : [];
+      return row.filter(item => item && item.prompt);
+    }
+
+    function renderEnrichmentPanel(book) {
+      const panel = qs('enrichmentPanel');
+      const enrichment = (book && book.enrichment && typeof book.enrichment === 'object') ? book.enrichment : {};
+      if (!Object.keys(enrichment).length) {
+        panel.innerHTML = '<div class="list-item"><em>No enrichment yet. Click “Enrich This Book”.</em></div>';
+        return;
+      }
+
+      const listValue = (value) => Array.isArray(value) ? value.join(', ') : String(value || '');
+      panel.innerHTML = [
+        ['Genre', listValue(enrichment.genre)],
+        ['Era', listValue(enrichment.era)],
+        ['Primary Setting', listValue(enrichment.setting_primary)],
+        ['Protagonist', listValue(enrichment.protagonist)],
+        ['Iconic Scenes', listValue(enrichment.iconic_scenes)],
+        ['Visual Motifs', listValue(enrichment.visual_motifs)],
+      ].map(([k, v]) => `<div class="list-item"><strong>${escapeHtml(k)}:</strong> ${escapeHtml(v || 'n/a')}</div>`).join('');
+    }
+
+    function renderSmartPromptList(book) {
+      const list = qs('smartPromptList');
+      const prompts = currentSmartPrompts(book);
+      if (!prompts.length) {
+        list.innerHTML = '<div class="list-item"><em>No smart prompts yet. Click “Generate Smart Prompts”.</em></div>';
+        return;
+      }
+      list.innerHTML = prompts.map(item => {
+        const quality = item.quality || {};
+        return `
+          <div class="list-item">
+            <strong>${escapeHtml(item.variant_name || `Variant ${item.variant_id || ''}`)}</strong><br>
+            <small>quality ${Number(quality.overall || 0).toFixed(3)} | specificity ${Number(quality.specificity || 0).toFixed(3)} | visual ${Number(quality.visual_richness || 0).toFixed(3)}</small><br>
+            <button data-smart-variant="${Number(item.variant_id || 0)}" class="u-mt-6">Load</button>
+          </div>
+        `;
+      }).join('');
+
+      list.querySelectorAll('button[data-smart-variant]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const variant = Number(btn.dataset.smartVariant || 0);
+          const item = prompts.find(row => Number(row.variant_id || 0) === variant) || prompts[0];
+          if (!item) return;
+          qs('promptEditor').value = item.prompt || '';
+          const quality = item.quality || {};
+          qs('promptQuality').textContent = `Prompt quality: overall ${Number(quality.overall || 0).toFixed(3)} · specificity ${Number(quality.specificity || 0).toFixed(3)} · visual ${Number(quality.visual_richness || 0).toFixed(3)} · compliance ${Number(quality.constraint_compliance || 0).toFixed(3)}`;
+        });
+      });
+    }
+
+    function applyPromptSource(book) {
+      if (!book) return;
+      const smart = currentSmartPrompts(book);
+      if (app.promptSource === 'ai_generated' && smart.length) {
+        app.selectedLibraryPromptId = '';
+        const top = smart.slice().sort((a, b) => Number((b.quality || {}).overall || 0) - Number((a.quality || {}).overall || 0))[0];
+        const composed = composePromptForBook(book, { basePromptOverride: top.prompt || (book.default_prompt || '') });
+        qs('promptEditor').value = composed.prompt || (top.prompt || (book.default_prompt || ''));
+        const quality = top.quality || {};
+        qs('promptQuality').textContent = `Prompt quality: overall ${Number(quality.overall || 0).toFixed(3)} · specificity ${Number(quality.specificity || 0).toFixed(3)} · visual ${Number(quality.visual_richness || 0).toFixed(3)} · compliance ${Number(quality.constraint_compliance || 0).toFixed(3)}`;
+        renderPromptComposition(book, composed);
+        return;
+      }
+      if (app.promptSource === 'template') {
+        app.selectedLibraryPromptId = '';
+        const fallbackBase = `Cinematic full-bleed narrative scene for ${book.title}, single dominant focal subject, vivid painterly color, no text, no logos, no borders or frames`;
+        const composed = composePromptForBook(book, { basePromptOverride: book.default_prompt || fallbackBase });
+        qs('promptEditor').value = composed.prompt || (book.default_prompt || fallbackBase);
+        qs('promptQuality').textContent = 'Prompt quality: n/a (template mode)';
+        renderPromptComposition(book, composed);
+        return;
+      }
+      if (app.promptSource === 'library') {
+        if (app.selectedLibraryPromptId) {
+          applyLibraryPrompt(app.selectedLibraryPromptId, { silent: true });
+        }
+        qs('promptQuality').textContent = 'Prompt quality: n/a (library mode)';
+        renderPromptComposition(book, composePromptForBook(book, { basePromptOverride: qs('promptEditor').value }));
+        return;
+      }
+      app.selectedLibraryPromptId = '';
+      qs('promptQuality').textContent = 'Prompt quality: n/a (custom mode)';
+      renderPromptComposition(book, composePromptForBook(book, { basePromptOverride: qs('promptEditor').value }));
+    }
+
+    function onBookChange() {
+      const book = currentBook();
+      if (!book) return;
+      if (qs('quickBookSelect')) qs('quickBookSelect').value = String(book.number);
+      renderEnrichmentPanel(book);
+      renderSmartPromptList(book);
+      applyPromptSource(book);
+      renderWinnerDownloadButton(book);
+      loadHistory(book.number);
+      loadCostProjection();
+      refreshCoverPreview({ silent: true }).catch(() => {});
+      if (app.coverSource !== 'drive' && book.local_cover_available === false) {
+        qs('resultStatus').textContent = 'No local cover found for this title. Switch Cover Source to Google Drive to download on demand.';
+      }
+    }
+
+    async function refreshIterateData() {
+      const selected = currentBook();
+      const selectedNumber = selected ? Number(selected.number) : 0;
+      const selectedDriveId = app.selectedDriveCoverId;
+      const { res, data } = await fetchAllIterateData({ timeoutMs: 15000 });
+      if (!res.ok) {
+        throw new Error(data.error || data.message || 'Failed to refresh iterate data.');
+      }
+      app.books = data.books || [];
+      app.models = data.models || app.models;
+      app.providers = data.providers || app.providers;
+      app.providerModels = data.provider_models || app.providerModels;
+      app.anchors = data.style_anchors || app.anchors;
+      app.promptLibrary = data.prompt_library || app.promptLibrary;
+      app.intelligentPromptsAvailable = Boolean(data.intelligent_prompts_available);
+      app.enrichmentAvailable = Boolean(data.enrichment_available);
+      app.promptPerformance = data.prompt_performance || app.promptPerformance || {};
+      app.modelCosts = data.model_costs || app.modelCosts || {};
+      app.templates = Array.isArray(data.templates) ? data.templates : app.templates;
+      const defaultTemplate = String(data.default_template_id || '').trim();
+      if (defaultTemplate) app.selectedTemplateId = defaultTemplate;
+      app.budgetPresets = Array.isArray(data.budget_presets) ? data.budget_presets : app.budgetPresets;
+      app.driveOutputFolderId = String(data.gdrive_output_folder_id || app.driveOutputFolderId || '');
+      app.defaultCoverSource = (data.default_cover_source === 'drive') ? 'drive' : (app.defaultCoverSource || 'catalog');
+      if (!['catalog', 'drive'].includes(String(app.coverSource || '').toLowerCase())) {
+        app.coverSource = app.defaultCoverSource;
+      }
+      app.selectedDriveCoverId = selectedDriveId;
+      syncModelSelection();
+
+      renderBooks();
+      if (selectedNumber > 0) {
+        qs('bookSelect').value = String(selectedNumber);
+      }
+      renderCoverPickers();
+      renderProviders();
+      renderModels();
+      renderQuickControls();
+      renderPresetToggle();
+      renderAnchors();
+      renderTemplateControls();
+      renderLibrary();
+      await refreshProviderConnectivity({ force: false, silent: true });
+      await loadModelCompare();
+      renderModelInfoPanel();
+      applyModeRecommendations();
+      await loadDriveCovers({ silent: true });
+      applyCoverSource();
+    }
+
+    async function enrichCurrentBook() {
+      const book = currentBook();
+      if (!book) return;
+      const btn = qs('enrichBookBtn');
+      if (!btnStartLoading(btn, 'Enriching...')) return;
+      setStatus(`Enriching book ${book.number}...`);
+      try {
+        const res = await fetch(`/api/enrich-book?${catalogQuery()}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ catalog: app.catalog, book: Number(book.number) }),
+        });
+        const data = await res.json();
+        if (!res.ok || !data.ok) {
+          btnStopLoading(btn, false);
+          setStatus(data.error || `Failed to enrich book ${book.number}.`);
+          showToast(data.error || 'Enrichment failed.', 'error');
+          return;
+        }
+        await refreshIterateData();
+        btnStopLoading(btn, true);
+        setStatus(`Book ${book.number} enrichment updated.`);
+        showToast(`Book ${book.number} enriched successfully.`, 'success');
+      } catch (err) {
+        btnStopLoading(btn, false);
+        showToast('Enrichment error: ' + (err.message || err), 'error');
+      }
+    }
+
+    async function generateSmartPromptsForCurrentBook() {
+      const book = currentBook();
+      if (!book) return;
+      const btn = qs('generateSmartPromptsBtn');
+      if (!btnStartLoading(btn, 'Generating...')) return;
+      setStatus(`Generating smart prompts for book ${book.number}...`);
+      try {
+        const res = await fetch(`/api/generate-smart-prompts?${catalogQuery()}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ catalog: app.catalog, book: Number(book.number), count: 5 }),
+        });
+        const data = await res.json();
+        if (!res.ok || !data.ok) {
+          btnStopLoading(btn, false);
+          setStatus(data.error || `Failed to generate smart prompts for book ${book.number}.`);
+          showToast(data.error || 'Smart prompt generation failed.', 'error');
+          return;
+        }
+        app.promptSource = 'ai_generated';
+        qs('promptSource').value = app.promptSource;
+        await refreshIterateData();
+        btnStopLoading(btn, true);
+        setStatus(`Smart prompts generated for book ${book.number}.`);
+        showToast(`Smart prompts ready for book ${book.number}.`, 'success');
+      } catch (err) {
+        btnStopLoading(btn, false);
+        showToast('Smart prompt error: ' + (err.message || err), 'error');
+      }
+    }
+
+    async function loadHistory(bookNumber) {
+      const res = await fetch(`/api/history?book=${bookNumber}&${catalogQuery()}`);
+      const data = await res.json();
+      app.history = data.items || [];
+      qs('historyList').innerHTML = app.history.length
+        ? app.history.map((item, idx) => `
+            <div class="list-item">
+              <strong>${escapeHtml(item.model || 'unknown')}</strong> · v${Number(item.variant || item.variant_id || 0)}<br>
+              <small>${escapeHtml(item.timestamp || '')} · $${Number(item.cost || 0).toFixed(3)}</small><br>
+              <small>${escapeHtml(shortPrompt(item.prompt || ''))}</small><br>
+              ${historyCompareCheckbox(item, idx)}
+            </div>`).join('')
+        : '<div class="list-item"><em>No history for this book yet.</em></div>';
+      qs('historyList').querySelectorAll('[data-history-compare]').forEach(box => {
+        box.addEventListener('change', handleCompareToggle);
+      });
+    }
+
+    function selectedModels() {
+      const scoped = visibleModels();
+      return scoped.filter(model => {
+        if (!app.modelSelection.has(model)) return false;
+        const provider = modelProvider(model);
+        return !(provider && providerDisabled(provider));
+      });
+    }
+
+    function rebuildPromptFromAnchors() {
+      if (!app.selectedAnchors.size) return;
+      const book = currentBook();
+      const parts = Array.from(app.selectedAnchors).map(name => {
+        const anchor = app.anchors.find(a => a.name === name);
+        return anchor ? anchor.style_text : '';
+      }).filter(Boolean);
+      qs('promptEditor').value = `Create a vivid, scene-first illustration for ${book.title}. ${parts.join(', ')}, no text, no letters, no words, no logos, no labels, no banners, no plaques, no frame, no border, no decorative ornaments.`;
+      qs('promptQuality').textContent = 'Prompt quality: n/a (style-anchor mix)';
+    }
+
+    async function generate(triggerButton) {
+      closeJobEventStream();
+      const book = currentBook();
+      const models = selectedModels();
+      const selectedCover = app.coverSource === 'drive' ? selectedDriveCover() : null;
+      const variants = Number(qs('variationCount').value);
+      const provider = qs('providerSelect').value || 'all';
+      const genBtn = triggerButton || qs('generateBtn');
+      if (!btnStartLoading(genBtn, 'Generating...')) return;
+      app.modelSelectionTouched = true;
+      app.modelSelection = new Set(models);
+      app.runStartedAt = nowIso();
+      app.latestJobId = '';
+      app.currentRunSummary = null;
+      app.dismissedResults.clear();
+      app.resultsByKey = new Map();
+      app.modelProgress = {};
+      models.forEach(model => {
+        app.modelProgress[model] = {
+          model,
+          completed: 0,
+          total: variants,
+          status: 'queued',
+          etaSeconds: 0,
+          lastVariantAt: '',
+        };
+      });
+      updateHeartbeat({
+        jobId: '',
+        status: 'submitting',
+        stage: 'request',
+        message: 'Submitting generation request...',
+        attempts: 0,
+        maxAttempts: 0,
+        startedAt: new Date().toISOString(),
+        lastUpdateAt: new Date().toISOString(),
+        bookNumber: Number(book && book.number || 0),
+        bookTitle: String(book && book.title || ''),
+        coverSource: app.coverSource,
+        models,
+        variants,
+        provider,
+        error: '',
+      });
+      if (!book) {
+        btnStopLoading(genBtn, false);
+        showToast('No book selected.', 'error');
+        return;
+      }
+      let targetBookNumber = Number(book.number || 0);
+      if (app.coverSource === 'drive') {
+        const mappedBook = Number(selectedCover && selectedCover.book_number ? selectedCover.book_number : 0);
+        if (selectedCover) {
+          if (mappedBook <= 0) {
+            qs('resultStatus').textContent = 'Selected Drive cover is not mapped to a catalog book number.';
+            updateHeartbeat({ status: 'blocked', message: 'Selected Drive cover is not mapped to a catalog book number.', error: '' });
+            btnStopLoading(genBtn, false);
+            showToast('Selected Drive cover is not mapped to a catalog book number.', 'error');
+            return;
+          }
+          const inScope = app.books.some(row => Number(row.number) === mappedBook);
+          if (!inScope) {
+            qs('resultStatus').textContent = `Selected Drive cover maps to book ${mappedBook}, which is outside the current catalog scope.`;
+            updateHeartbeat({ status: 'blocked', message: `Drive cover maps to out-of-scope book ${mappedBook}.`, error: '' });
+            btnStopLoading(genBtn, false);
+            showToast(`Drive cover maps to out-of-scope book ${mappedBook}.`, 'error');
+            return;
+          }
+          targetBookNumber = mappedBook;
+        }
+      }
+      if (!models.length) {
+        qs('resultStatus').textContent = 'Select at least one model.';
+        updateHeartbeat({ status: 'blocked', message: 'Select at least one model.', error: '' });
+        btnStopLoading(genBtn, false);
+        showToast('Select at least one model.', 'error');
+        return;
+      }
+      if (app.coverSource === 'catalog' && !localCoverAvailable(targetBookNumber)) {
+        const message = `No local cover is available for book ${targetBookNumber}. Switch Cover Source to Google Drive for automatic cover download.`;
+        qs('resultStatus').textContent = message;
+        updateHeartbeat({
+          status: 'blocked',
+          stage: 'preflight',
+          message,
+          error: '',
+          lastUpdateAt: new Date().toISOString(),
+        });
+        btnStopLoading(genBtn, false);
+        showToast(message, 'error');
+        return;
+      }
+      const payload = {
+        catalog: app.catalog,
+        book: targetBookNumber,
+        models,
+        variants,
+        prompt: qs('promptEditor').value,
+        prompt_source: app.promptSource || 'template',
+        provider,
+        cover_source: app.coverSource,
+        template_id: app.selectedTemplateId || '',
+        compose_prompt: true,
+        selected_cover_id: selectedCover ? String(selectedCover.id || '') : '',
+        selected_cover_book_number: selectedCover ? Number(selectedCover.book_number || 0) : 0,
+        selected_cover: selectedCover || null,
+        library_prompt_id: app.selectedLibraryPromptId || '',
+        drive_folder_id: app.driveFolderId || '',
+        input_folder_id: app.driveInputFolderId || '',
+        async: true,
+      };
+
+      try {
+        qs('resultStatus').textContent = 'Generating...';
+        const res = await fetch(`/api/generate?${catalogQuery()}`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
+        });
+        const data = await res.json();
+        if (!res.ok || !data.ok) {
+          qs('resultStatus').textContent = data.error || data.message || 'Generation request failed.';
+          updateHeartbeat({
+            status: 'failed',
+            stage: 'request',
+            message: data.message || 'Generation request failed.',
+            error: data.error || data.message || 'request failed',
+            lastUpdateAt: new Date().toISOString(),
+          });
+          btnStopLoading(genBtn, false);
+          showToast(data.error || 'Generation failed.', 'error');
+          return;
+        }
+
+        if (data.results && data.results.length) {
+          app.latestResults = data.results || [];
+          app.resultsByKey = new Map((app.latestResults || []).map(item => [resultKey(item), item]));
+          renderResults();
+          loadHistory(book.number);
+          qs('resultStatus').textContent = data.message || 'Generation complete.';
+          const summary = computeRunSummary();
+          if (summary) applyRunCostSummary(summary);
+          updateHeartbeat({
+            status: 'completed',
+            stage: 'complete',
+            message: data.message || 'Generation complete.',
+            attempts: 1,
+            maxAttempts: 1,
+            lastUpdateAt: new Date().toISOString(),
+            error: '',
+          });
+          btnStopLoading(genBtn, true);
+          showToast('Generation complete!', 'success');
+          pushNotification(`Generation completed for book ${book.number}.`, 'success');
+          return;
+        }
+
+        const job = data.job || {};
+        if (!job.id) {
+          qs('resultStatus').textContent = 'Generation job queued but no job id returned.';
+          updateHeartbeat({
+            status: 'queued',
+            stage: 'queue',
+            message: 'Generation queued, but job id was not returned.',
+            lastUpdateAt: new Date().toISOString(),
+          });
+          btnStopLoading(genBtn, false);
+          showToast('Generation queued but no job id was returned.', 'error');
+          return;
+        }
+        updateHeartbeat({
+          jobId: String(job.id),
+          status: String(job.status || 'queued'),
+          stage: inferJobStage(job),
+          message: `Job ${job.id} queued.`,
+          attempts: Number(job.attempts || 0),
+          maxAttempts: Number(job.max_attempts || 0),
+          lastUpdateAt: String(job.updated_at || new Date().toISOString()),
+          stalled: false,
+        });
+        app.latestJobId = String(job.id);
+        qs('runSummaryBanner').classList.add('picker-hidden');
+        const streamed = await streamGenerationJob(job.id, Number(book.number), String(data.event_url || ''), genBtn);
+        if (!streamed) {
+          qs('resultStatus').textContent = 'Live stream stalled; polling job status...';
+          updateHeartbeat({
+            status: 'polling',
+            stage: 'poll',
+            message: `Live stream stalled for job ${job.id}; polling status every 1.2s.`,
+            lastUpdateAt: new Date().toISOString(),
+            stalled: true,
+          });
+          showToast('Live stream stalled. Switched to polling mode.', 'info', 2200);
+          await pollGenerationJob(job.id, Number(book.number), genBtn);
+        }
+      } catch (err) {
+        const message = String((err && err.message) || err || 'request error');
+        qs('resultStatus').textContent = 'Generation request failed before queueing.';
+        updateHeartbeat({
+          status: 'failed',
+          stage: 'request',
+          message: 'Generation request failed before queueing.',
+          error: message,
+          lastUpdateAt: new Date().toISOString(),
+        });
+        btnStopLoading(genBtn, false);
+        showToast(`Generation request failed: ${message}`, 'error');
+      }
+    }
+
+    function closeJobEventStream() {
+      if (app.jobEventSource) {
+        try { app.jobEventSource.close(); } catch (_) {}
+        app.jobEventSource = null;
+      }
+    }
+
+    function _eventPayload(event) {
+      try {
+        return JSON.parse(String(event && event.data ? event.data : '{}'));
+      } catch (_) {
+        return {};
+      }
+    }
+
+    async function _refreshJobOnce(jobId) {
+      const { res, data } = await fetchJson(`/api/jobs/${encodeURIComponent(jobId)}?${catalogQuery()}`, { timeoutMs: 15000 });
+      if (!res.ok || !data.ok) return null;
+      return data.job || null;
+    }
+
+    async function streamGenerationJob(jobId, bookNumber, eventUrl, genBtn) {
+      const baseUrl = (eventUrl && String(eventUrl).trim()) || `/api/events/job/${encodeURIComponent(jobId)}`;
+      const url = baseUrl.includes('?') ? `${baseUrl}&${catalogQuery()}` : `${baseUrl}?${catalogQuery()}`;
+      let source = null;
+      try {
+        source = new EventSource(url);
+      } catch (_) {
+        return false;
+      }
+      app.jobEventSource = source;
+      let terminal = false;
+      let sawEvent = false;
+      let settled = false;
+      let lastEventAt = Date.now();
+      const streamStallMs = 15000;
+
+      return await new Promise((resolve) => {
+        const settle = (handled) => {
+          if (settled) return;
+          settled = true;
+          clearTimeout(timeoutHandle);
+          clearInterval(stallHandle);
+          closeJobEventStream();
+          resolve(Boolean(handled));
+        };
+
+        const timeoutHandle = setTimeout(() => {
+          if (!sawEvent && !terminal) settle(false);
+        }, 8000);
+        const stallHandle = setInterval(() => {
+          if (terminal || settled) return;
+          const idleMs = Date.now() - lastEventAt;
+          if (idleMs < streamStallMs) return;
+          updateHeartbeat({
+            jobId: String(jobId),
+            status: 'stream-stalled',
+            stage: 'stream',
+            message: `No live updates for ${humanDuration(Math.floor(idleMs / 1000))}; switching to polling.`,
+            lastUpdateAt: new Date().toISOString(),
+            stalled: true,
+          });
+          settle(false);
+        }, 3000);
+
+        source.addEventListener('ready', (evt) => {
+          sawEvent = true;
+          lastEventAt = Date.now();
+          const payload = _eventPayload(evt);
+          updateHeartbeat({
+            jobId: String(payload.job_id || jobId),
+            status: 'running',
+            stage: 'queue',
+            message: `Connected to live stream for job ${jobId}.`,
+            lastUpdateAt: String(payload.timestamp || new Date().toISOString()),
+            stalled: false,
+          });
+        });
+
+        source.addEventListener('job_progress', (evt) => {
+          sawEvent = true;
+          lastEventAt = Date.now();
+          const payload = _eventPayload(evt);
+          const progress = Math.round(Number(payload.progress || 0) * 100);
+          const status = String(payload.status || 'running');
+          const stage = String(payload.stage || '').trim();
+          const detailMessage = String(payload.message || '').trim();
+          const message = detailMessage || `Job ${jobId}: ${status}${Number.isFinite(progress) ? ` (${progress}%)` : ''}`;
+          qs('resultStatus').textContent = message;
+          updateHeartbeat({
+            jobId: String(payload.job_id || jobId),
+            status,
+            stage: stage || inferJobStage({ status }),
+            message,
+            attempts: Number(payload.attempt_number || 0),
+            lastUpdateAt: String(payload.timestamp || new Date().toISOString()),
+            stalled: false,
+          });
+          renderHeartbeat();
+        });
+
+        source.addEventListener('variant_complete', (evt) => {
+          sawEvent = true;
+          lastEventAt = Date.now();
+          const payload = _eventPayload(evt);
+          const variant = Number(payload.variant || 0);
+          const model = String(payload.model || 'model');
+          const quality = Number(payload.quality_score || 0);
+          const message = `Variant ${variant} complete · ${model}${quality > 0 ? ` · quality ${quality.toFixed(2)}` : ''}`;
+          qs('resultStatus').textContent = message;
+          const progress = app.modelProgress[model] || {
+            model,
+            completed: 0,
+            total: Number(app.heartbeat && app.heartbeat.variants || qs('variationCount').value || 0),
+            status: 'running',
+            etaSeconds: 0,
+            lastVariantAt: '',
+          };
+          progress.completed = Math.min(Number(progress.total || 0), Number(progress.completed || 0) + 1);
+          progress.status = progress.completed >= Number(progress.total || 0) ? 'completed' : 'running';
+          progress.lastVariantAt = nowIso();
+          const runStartedMs = app.runStartedAt ? Date.parse(String(app.runStartedAt)) : NaN;
+          const elapsedSeconds = Number.isFinite(runStartedMs) ? Math.max(0, (Date.now() - runStartedMs) / 1000) : 0;
+          if (progress.completed > 0 && progress.completed < Number(progress.total || 0) && elapsedSeconds > 0) {
+            const avgSecondsPerVariant = elapsedSeconds / Number(progress.completed || 1);
+            progress.etaSeconds = Math.max(
+              0,
+              Math.round(avgSecondsPerVariant * (Number(progress.total || 0) - Number(progress.completed || 0))),
+            );
+          } else {
+            progress.etaSeconds = 0;
+          }
+          app.modelProgress[model] = progress;
+          const key = `${model}::${variant}`;
+          const existing = app.resultsByKey.get(key) || {};
+          const merged = Object.assign({}, existing, {
+            book_number: Number(payload.book_number || currentBook().number || 0),
+            variant,
+            variant_id: variant,
+            model,
+            quality_score: quality,
+            generation_time: Number(existing.generation_time || 0),
+            cost: Number(existing.cost || app.modelCosts[model] || 0),
+            image_path: payload.image_path || existing.image_path || '',
+            composited_path: payload.composited_path || existing.composited_path || '',
+            prompt: existing.prompt || '',
+            success: true,
+          });
+          app.resultsByKey.set(key, merged);
+          app.latestResults = Array.from(app.resultsByKey.values());
+          renderResults();
+          updateHeartbeat({
+            jobId: String(payload.job_id || jobId),
+            status: 'running',
+            stage: 'generate',
+            message,
+            lastUpdateAt: new Date().toISOString(),
+            stalled: false,
+          });
+          renderRunSummaryBanner();
+        });
+
+        source.addEventListener('job_completed', async (evt) => {
+          terminal = true;
+          clearTimeout(timeoutHandle);
+          const payload = _eventPayload(evt);
+          const result = payload.result || {};
+          if (Array.isArray(result.results) && result.results.length) {
+            app.latestResults = result.results || [];
+            app.resultsByKey = new Map((app.latestResults || []).map(item => [resultKey(item), item]));
+            renderResults();
+            await loadHistory(bookNumber);
+            qs('resultStatus').textContent = result.message || 'Generation complete.';
+          } else {
+            const latest = await _refreshJobOnce(jobId);
+            if (latest && latest.result && Array.isArray(latest.result.results)) {
+              app.latestResults = latest.result.results || [];
+              app.resultsByKey = new Map((app.latestResults || []).map(item => [resultKey(item), item]));
+              renderResults();
+              await loadHistory(bookNumber);
+              qs('resultStatus').textContent = String((latest.result && latest.result.message) || 'Generation complete.');
+            } else {
+              qs('resultStatus').textContent = 'Generation complete.';
+            }
+          }
+          updateHeartbeat({
+            jobId: String(payload.job_id || jobId),
+            status: 'completed',
+            stage: 'complete',
+            message: String((result && result.message) || 'Generation complete.'),
+            lastUpdateAt: String(payload.timestamp || new Date().toISOString()),
+            error: '',
+            stalled: false,
+          });
+          Object.keys(app.modelProgress || {}).forEach(modelName => {
+            const row = app.modelProgress[modelName];
+            if (!row) return;
+            row.status = row.completed >= row.total ? 'completed' : 'completed';
+            row.etaSeconds = 0;
+            app.modelProgress[modelName] = row;
+          });
+          const summary = computeRunSummary();
+          if (summary) applyRunCostSummary(summary);
+          btnStopLoading(genBtn, true);
+          showToast('Generation complete!', 'success');
+          pushNotification(`Generation completed for job ${jobId}.`, 'success');
+          settle(true);
+        });
+
+        source.addEventListener('job_failed', (evt) => {
+          const payload = _eventPayload(evt);
+          const status = String(payload.status || 'failed');
+          if (!['failed', 'cancelled'].includes(status)) return;
+          terminal = true;
+          clearTimeout(timeoutHandle);
+          const message = String(payload.error || 'Generation job failed.');
+          qs('resultStatus').textContent = `Job ${status}: ${message}`;
+          updateHeartbeat({
+            jobId: String(payload.job_id || jobId),
+            status,
+            stage: inferJobStage({ status }),
+            message: `Job ${status}: ${message}`,
+            lastUpdateAt: String(payload.timestamp || new Date().toISOString()),
+            error: message,
+            stalled: false,
+          });
+          btnStopLoading(genBtn, false);
+          showToast(`Generation ${status}: ${message}`, 'error');
+          pushNotification(`Generation ${status}: ${message}`, 'error');
+          settle(true);
+        });
+
+        source.onerror = () => {
+          clearTimeout(timeoutHandle);
+          if (terminal) return settle(true);
+          settle(false);
+        };
+      });
+    }
+
+    async function pollGenerationJob(jobId, bookNumber, genBtn) {
+      const startedAt = Date.now();
+      const timeoutMs = 30 * 60 * 1000;
+      while (Date.now() - startedAt < timeoutMs) {
+        let data = {};
+        try {
+          const res = await fetch(`/api/jobs/${encodeURIComponent(jobId)}?${catalogQuery()}`);
+          data = await res.json();
+          if (!res.ok || !data.ok) {
+            qs('resultStatus').textContent = data.error || 'Job polling failed.';
+            btnStopLoading(genBtn, false);
+            showToast('Job polling failed.', 'error');
+            return;
+          }
+        } catch (err) {
+          const message = String((err && err.message) || err || 'Job polling failed.');
+          qs('resultStatus').textContent = message;
+          btnStopLoading(genBtn, false);
+          showToast(message, 'error');
+          return;
+        }
+
+        const job = data.job || {};
+        const attempts = Number(job.attempts || 0);
+        const statusText = `Job ${job.id}: ${job.status}${attempts ? ` · attempts ${attempts}${job.max_attempts ? `/${Number(job.max_attempts)}` : ''}` : ''}`;
+        qs('resultStatus').textContent = statusText;
+        updateHeartbeat({
+          jobId: String(job.id || jobId),
+          status: String(job.status || 'running'),
+          stage: inferJobStage(job),
+          message: statusText,
+          attempts: attempts,
+          maxAttempts: Number(job.max_attempts || 0),
+          lastUpdateAt: String(job.updated_at || new Date().toISOString()),
+          error: String((job.error && (job.error.message || job.error.error)) || ''),
+        });
+
+        if (job.status === 'completed') {
+          const result = job.result || {};
+          app.latestResults = result.results || [];
+          app.resultsByKey = new Map((app.latestResults || []).map(item => [resultKey(item), item]));
+          renderResults();
+          await loadHistory(bookNumber);
+          qs('resultStatus').textContent = result.message || 'Generation complete.';
+          updateHeartbeat({
+            status: 'completed',
+            stage: 'complete',
+            message: result.message || 'Generation complete.',
+            lastUpdateAt: String(job.finished_at || job.updated_at || new Date().toISOString()),
+            error: '',
+          });
+          const summary = computeRunSummary();
+          if (summary) applyRunCostSummary(summary);
+          btnStopLoading(genBtn, true);
+          showToast('Generation complete!', 'success');
+          pushNotification(`Generation completed for job ${jobId}.`, 'success');
+          return;
+        }
+        if (job.status === 'failed' || job.status === 'cancelled') {
+          const err = job.error || {};
+          const message = err.message || err.error || 'Generation job failed.';
+          qs('resultStatus').textContent = `Job ${job.status}: ${message}`;
+          updateHeartbeat({
+            status: String(job.status),
+            stage: inferJobStage(job),
+            message: `Job ${job.status}: ${message}`,
+            lastUpdateAt: String(job.updated_at || new Date().toISOString()),
+            error: String(message),
+          });
+          btnStopLoading(genBtn, false);
+          showToast(`Generation ${job.status}: ${message}`, 'error');
+          pushNotification(`Generation ${job.status}: ${message}`, 'error');
+          return;
+        }
+        await new Promise(resolve => setTimeout(resolve, 1200));
+      }
+      qs('resultStatus').textContent = `Job ${jobId} timed out while waiting for completion.`;
+      updateHeartbeat({
+        jobId: String(jobId),
+        status: 'timeout',
+        stage: 'poll',
+        message: `Job ${jobId} timed out while waiting for completion.`,
+        lastUpdateAt: new Date().toISOString(),
+        error: 'poll timeout',
+      });
+      btnStopLoading(genBtn, false);
+      showToast('Generation timed out.', 'error');
+    }
+
+    async function testConnection() {
+      const btn = qs('testConnectionBtn');
+      if (!btnStartLoading(btn, 'Testing...')) return;
+      qs('providerStatus').textContent = 'Testing...';
+      try {
+        const provider = qs('providerSelect').value || 'all';
+        const res = await fetch(`/api/test-connection?${catalogQuery()}`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ provider, catalog: app.catalog }),
+        });
+        const data = await res.json();
+        if (!res.ok || !data.ok) {
+          const message = data.error || data.message || 'Connection test failed.';
+          qs('providerStatus').textContent = message;
+          btnStopLoading(btn, false);
+          showToast(message, 'error');
+          return;
+        }
+        const rows = (data.report && data.report.providers) || [];
+        qs('providerStatus').textContent = rows.map(r => `${r.provider}: ${r.status}`).join(' | ') || 'No provider results.';
+        const connectivityOk = await refreshProviderConnectivity({ force: true, silent: false });
+        btnStopLoading(btn, connectivityOk);
+        showToast(connectivityOk ? 'Connection test complete.' : (app.providerConnectivityError || 'Provider connectivity check failed.'), connectivityOk ? 'success' : 'error');
+      } catch (err) {
+        btnStopLoading(btn, false);
+        showToast(`Connection test failed: ${String((err && err.message) || err || 'unknown error')}`, 'error');
+      }
+    }
+
+    function renderWinnerDownloadButton(book) {
+      const btn = qs('downloadWinnerBtn');
+      if (!btn) return;
+      const winnerVariant = Number(book && book.winner_variant ? book.winner_variant : 0);
+      btn.classList.toggle('picker-hidden', winnerVariant <= 0);
+      btn.dataset.book = String(book && book.number ? book.number : 0);
+      btn.dataset.variant = String(winnerVariant);
+      btn.title = winnerVariant > 0
+        ? `Winner selected: variant ${winnerVariant}. Download print-ready package.`
+        : 'No winner selected for this book yet.';
+    }
+
+    const DOWNLOAD_TIMEOUT_MS = 120000;
+
+    function filenameFromContentDisposition(headerValue, fallbackName) {
+      const header = String(headerValue || '');
+      if (!header) return fallbackName;
+      const utf8Match = header.match(/filename\*=UTF-8''([^;]+)/i);
+      if (utf8Match && utf8Match[1]) {
+        try {
+          return decodeURIComponent(utf8Match[1].trim().replace(/^"+|"+$/g, '')) || fallbackName;
+        } catch (_) {}
+      }
+      const plainMatch = header.match(/filename="?([^";]+)"?/i);
+      if (plainMatch && plainMatch[1]) return plainMatch[1].trim();
+      return fallbackName;
+    }
+
+    function triggerBlobDownload(blob, filename) {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+    }
+
+    async function fetchDownloadBlob(url) {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), DOWNLOAD_TIMEOUT_MS);
+      try {
+        const resp = await fetch(url, { signal: controller.signal });
+        if (!resp.ok) {
+          let errorMsg = `HTTP ${resp.status}`;
+          try {
+            const payload = await resp.json();
+            errorMsg = payload.error || payload.message || errorMsg;
+          } catch (_) {}
+          throw new Error(errorMsg);
+        }
+        const blob = await resp.blob();
+        if (blob.size === 0) throw new Error('Empty response - ZIP build may have failed on server');
+        return { resp, blob };
+      } finally {
+        clearTimeout(timeout);
+      }
+    }
+
+    async function downloadVariant(book, variant, model, btn) {
+      if (!btnStartLoading(btn, 'Preparing ZIP...')) return;
+      try {
+        const params = new URLSearchParams({
+          book: String(book),
+          variant: String(variant),
+        });
+        if (model) params.set('model', String(model));
+        const { resp, blob } = await fetchDownloadBlob(`/api/variant-download?${params.toString()}&${catalogQuery()}`);
+        const filename = filenameFromContentDisposition(
+          resp.headers.get('content-disposition'),
+          `book_${book}_variant_${variant}.zip`
+        );
+        triggerBlobDownload(blob, filename);
+        btnStopLoading(btn, true);
+        showToast('Variant download ready.', 'success', 2200);
+      } catch (err) {
+        btnStopLoading(btn, false);
+        const msg = err && err.name === 'AbortError'
+          ? 'Download timed out. Try again or use "Download This Book" instead.'
+          : 'Download failed: ' + ((err && err.message) || err || 'unknown error');
+        showToast(msg, 'error', 5000);
+      }
+    }
+
+    async function downloadWinner(bookNumber, btn) {
+      if (!bookNumber || Number(bookNumber) <= 0) return;
+      if (!btnStartLoading(btn, 'Preparing ZIP...')) return;
+      try {
+        const { resp, blob } = await fetchDownloadBlob(`/api/winner-download?book=${encodeURIComponent(bookNumber)}&${catalogQuery()}`);
+        const filename = filenameFromContentDisposition(
+          resp.headers.get('content-disposition'),
+          `book_${bookNumber}_winner.zip`
+        );
+        triggerBlobDownload(blob, filename);
+        btnStopLoading(btn, true);
+        showToast('Winner package download ready.', 'success', 2200);
+      } catch (err) {
+        btnStopLoading(btn, false);
+        const msg = err && err.name === 'AbortError'
+          ? 'Winner package download timed out. Please try again.'
+          : 'Winner download failed: ' + ((err && err.message) || err || 'unknown error');
+        showToast(msg, 'error', 5000);
+      }
+    }
+
+    async function downloadSource(book, variant, model, btn) {
+      if (!btnStartLoading(btn, 'Preparing...')) return;
+      try {
+        const params = new URLSearchParams({
+          book: String(book),
+          variant: String(variant),
+          model: String(model || ''),
+          catalog: app.catalog,
+        });
+        const { resp, blob } = await fetchDownloadBlob(`/api/source-download?${params.toString()}`);
+        const filename = filenameFromContentDisposition(
+          resp.headers.get('content-disposition'),
+          `book_${book}_${model}_source_variant_${variant}.png`
+        );
+        triggerBlobDownload(blob, filename);
+        btnStopLoading(btn, true);
+        showToast('Source image download ready.', 'success', 2000);
+      } catch (err) {
+        btnStopLoading(btn, false);
+        const msg = err && err.name === 'AbortError'
+          ? 'Source image download timed out. Please try again.'
+          : 'Source download failed: ' + ((err && err.message) || err || 'unknown error');
+        showToast(msg, 'error', 5000);
+      }
+    }
+
+    async function downloadBookVariants(bookNumber, btn) {
+      if (!bookNumber || Number(bookNumber) <= 0) return;
+      if (!btnStartLoading(btn, 'Preparing ZIP...')) return;
+      try {
+        const { resp, blob } = await fetchDownloadBlob(`/api/download-book?book=${encodeURIComponent(bookNumber)}&${catalogQuery()}`);
+        const filename = filenameFromContentDisposition(
+          resp.headers.get('content-disposition'),
+          `book_${bookNumber}_all_variants.zip`
+        );
+        triggerBlobDownload(blob, filename);
+        btnStopLoading(btn, true);
+        showToast('Book package ready.', 'success', 2000);
+      } catch (err) {
+        btnStopLoading(btn, false);
+        const msg = err && err.name === 'AbortError'
+          ? 'Book package download timed out. Please try again.'
+          : 'Book package failed: ' + ((err && err.message) || err || 'unknown error');
+        showToast(msg, 'error', 5000);
+      }
+    }
+
+    async function downloadApproved(btn) {
+      if (!btnStartLoading(btn, 'Preparing ZIP...')) return;
+      try {
+        const { resp, blob } = await fetchDownloadBlob(`/api/download-approved?${catalogQuery()}`);
+        const filename = filenameFromContentDisposition(
+          resp.headers.get('content-disposition'),
+          `approved_covers_${app.catalog}.zip`
+        );
+        triggerBlobDownload(blob, filename);
+        btnStopLoading(btn, true);
+        showToast('Approved package ready.', 'success', 2200);
+      } catch (err) {
+        btnStopLoading(btn, false);
+        const msg = err && err.name === 'AbortError'
+          ? 'Approved package download timed out. Please try again.'
+          : 'Approved download failed: ' + ((err && err.message) || err || 'unknown error');
+        showToast(msg, 'error', 5000);
+      }
+    }
+
+    async function selectWinner(book, variant, model, quality) {
+      try {
+        const payload = {
+          catalog: app.catalog,
+          book: Number(book),
+          variant: Number(variant),
+          reviewer: 'tim',
+          review_mode: app.uiMode === 'advanced' ? 'advanced' : 'quick',
+        };
+        const res = await fetch(`/api/review-selection?${catalogQuery()}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        const data = await res.json();
+        if (!res.ok || !data.ok) {
+          throw new Error(data.error || data.message || 'Failed to save winner.');
+        }
+        showToast(`Winner selected: ${model} v${variant}.`, 'success');
+        pushNotification(`Winner selected for book ${book}: ${model} v${variant}.`, 'success');
+        const compareModels = selectedCompareItems().map(item => item.model).filter(Boolean);
+        await fetch(`/api/analytics/ab-tests?${catalogQuery()}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            book_id: Number(book),
+            models_compared: compareModels.length ? compareModels : selectedModels(),
+            winner: model,
+            quality_scores: { [model]: Number(quality || 0) },
+            user_comment: '',
+          }),
+        }).catch(() => {});
+        await refreshIterateData();
+        return true;
+      } catch (error) {
+        showToast(String((error && error.message) || error || 'Winner selection failed.'), 'error');
+        return false;
+      }
+    }
+
+    function regenerateModel(model) {
+      app.modelSelectionTouched = true;
+      app.modelSelection = new Set([model]);
+      renderModels();
+      renderQuickControls();
+      showToast(`Re-generating with model ${model}.`, 'info', 2000);
+      generate(qs('quickGenerateBtn').classList.contains('picker-hidden') ? qs('generateBtn') : qs('quickGenerateBtn'));
+    }
+
+    function togglePromptPanel(btn) {
+      const root = btn && btn.closest('.img-card-prompt');
+      if (!root) return;
+      const expanded = root.classList.toggle('expanded');
+      btn.textContent = expanded ? 'Hide Prompt ▴' : 'Show Prompt ▾';
+    }
+
+    async function copyPromptToClipboard(btn, prompt) {
+      try {
+        await navigator.clipboard.writeText(String(prompt || ''));
+        btnStopLoading(btn, true);
+        showToast('Prompt copied.', 'success', 1800);
+      } catch (err) {
+        btnStopLoading(btn, false);
+        showToast('Prompt copy failed.', 'error');
+      }
+    }
+
+    function computeRunSummary() {
+      const rows = (app.latestResults || []).filter(item => item && !app.dismissedResults.has(resultKey(item)));
+      if (!rows.length) return null;
+      const totalCostUsd = rows.reduce((sum, row) => sum + Number(row.cost || 0), 0);
+      const totalImages = rows.length;
+      const totalSeconds = Math.max(
+        Number(rows.reduce((sum, row) => sum + Number(row.generation_time || 0), 0)),
+        Math.max(1, (Date.now() - Date.parse(app.runStartedAt || nowIso())) / 1000)
+      );
+      const byModel = {};
+      let best = { model: '', quality: -1 };
+      rows.forEach(row => {
+        const model = String(row.model || 'unknown');
+        const bucket = byModel[model] || { model, cost: 0, count: 0, qualityTotal: 0 };
+        bucket.cost += Number(row.cost || 0);
+        bucket.count += 1;
+        bucket.qualityTotal += Number(row.quality_score || 0);
+        byModel[model] = bucket;
+        if (Number(row.quality_score || 0) > best.quality) {
+          best = { model, quality: Number(row.quality_score || 0) };
+        }
+      });
+      const avgQuality = rows.reduce((sum, row) => sum + Number(row.quality_score || 0), 0) / Math.max(1, rows.length);
+      return {
+        totalCostUsd: Number(totalCostUsd.toFixed(6)),
+        totalImages,
+        totalSeconds,
+        byModel: Object.values(byModel),
+        topModel: best.model || '',
+        avgQuality,
+        firstThumb: rows[0] && rows[0].composited_path ? `/${rows[0].composited_path}` : '',
+      };
+    }
+
+    function renderRunSummaryBanner() {
+      const node = qs('runSummaryBanner');
+      if (!node) return;
+      const summary = app.currentRunSummary || computeRunSummary();
+      if (!summary) {
+        node.classList.add('picker-hidden');
+        node.innerHTML = '';
+        return;
+      }
+      const modelBits = (summary.byModel || []).map(row => {
+        const avgQ = Number(row.qualityTotal || 0) / Math.max(1, Number(row.count || 0));
+        return `${row.model}: $${Number(row.cost || 0).toFixed(3)} (${Number(row.count || 0)} variants, q${avgQ.toFixed(2)})`;
+      }).join(' | ');
+      node.innerHTML = `
+        <div class="run-summary-title">Run Summary: ${Number(summary.totalImages || 0)} images • Total $${Number(summary.totalCostUsd || 0).toFixed(3)} • Time ${escapeHtml(humanDuration(summary.totalSeconds || 0))}</div>
+        <div class="run-summary-body">${escapeHtml(modelBits)}</div>
+      `;
+      node.classList.remove('picker-hidden');
+    }
+
+    function printValidationBadge(item) {
+      const summary = (item && typeof item.print_validation_summary === 'object' && item.print_validation_summary)
+        ? item.print_validation_summary
+        : null;
+      if (!summary) return '<span class="print-badge print-badge-unknown">print: n/a</span>';
+      const passedAll = Boolean(summary.passed_all);
+      const errors = Number(summary.errors_total || 0);
+      const warnings = Number(summary.warnings_total || 0);
+      if (passedAll && errors === 0) {
+        return `<span class="print-badge print-badge-pass">print: pass${warnings > 0 ? ` (${warnings} warn)` : ''}</span>`;
+      }
+      if (errors > 0) {
+        return `<span class="print-badge print-badge-fail">print: ${errors} error${errors === 1 ? '' : 's'}${warnings > 0 ? `, ${warnings} warn` : ''}</span>`;
+      }
+      return `<span class="print-badge print-badge-warn">print: ${warnings} warning${warnings === 1 ? '' : 's'}</span>`;
+    }
+
+    function styleTagsFromPrompt(prompt) {
+      const text = String(prompt || '').toLowerCase();
+      if (!text) return [];
+      const mapping = [
+        ['sevastopol', 'Sevastopol'],
+        ['cossack', 'Cossack'],
+        ['art nouveau', 'Art Nouveau'],
+        ['ukiyo', 'Ukiyo-e'],
+        ['woodblock', 'Ukiyo-e'],
+        ['noir', 'Noir'],
+        ['botanical', 'Botanical'],
+        ['gothic', 'Gothic'],
+        ['stained glass', 'Stained Glass'],
+        ['impression', 'Impressionist'],
+        ['expression', 'Expressionist'],
+        ['baroque', 'Baroque'],
+        ['watercolour', 'Watercolour'],
+        ['watercolor', 'Watercolour'],
+        ['symbolist', 'Symbolist'],
+        ['renaissance', 'Renaissance'],
+        ['realist', 'Realist'],
+        ['oil painting', 'Classical Oil'],
+        ['romantic', 'Romantic'],
+      ];
+      const out = [];
+      mapping.forEach(([needle, label]) => {
+        if (text.includes(needle) && !out.includes(label)) out.push(label);
+      });
+      return out.slice(0, 3);
+    }
+
+    function resolvePrimaryPreviewPath(item) {
+      const composite = String((item && item.composited_path) || '').trim();
+      if (composite) return composite;
+      const raw = String((item && item.image_path) || '').trim();
+      if (!raw) return '';
+      if (raw.includes('/tmp/generated/')) {
+        const guessed = raw
+          .replace('/tmp/generated/', '/tmp/composited/')
+          .replace(/\.png$/i, '.jpg');
+        return guessed;
+      }
+      return raw;
+    }
+
+    function renderResults() {
+      app.compareSelections.clear();
+      const root = qs('results');
+      root.innerHTML = '';
+      const grouped = {};
+      const visible = (app.latestResults || []).filter(item => item && !app.dismissedResults.has(resultKey(item)));
+      visible.forEach(item => {
+        const key = item.model || 'unknown';
+        grouped[key] = grouped[key] || [];
+        grouped[key].push(item);
+      });
+
+      Object.keys(grouped).sort().forEach(model => {
+        const section = document.createElement('div');
+        section.className = 'model-group';
+        section.innerHTML = `<h3 class="iterate-model-title">${escapeHtml(model)}</h3><div class="images"></div>`;
+        const images = section.querySelector('.images');
+
+        grouped[model].forEach((item, idx) => {
+          const imagePath = resolvePrimaryPreviewPath(item);
+          if (!imagePath) return;
+          const compareId = `${model}::${Number(item.variant || item.variant_id || idx + 1)}::${idx}`;
+          const overlayPath = item.fit_overlay_path || '';
+          const stackClass = (app.fitOverlayEnabled && overlayPath) ? 'img-stack show-overlay' : 'img-stack';
+          const variantNumber = Number(item.variant || item.variant_id || idx + 1);
+          const promptText = String(item.prompt || '').trim();
+          const styleTags = (Array.isArray(item.style_tags) ? item.style_tags : styleTagsFromPrompt(promptText)).slice(0, 3);
+          const styleTagHtml = styleTags.length
+            ? `<div class="style-tags">${styleTags.map(tag => `<span class="style-tag">${escapeHtml(tag)}</span>`).join('')}</div>`
+            : '';
+          const activeBook = currentBook();
+          const bookNumber = Number(item.book_number || (activeBook && activeBook.number) || 0);
+          const previewUrl = `/api/thumbnail?path=${encodeURIComponent(imagePath)}&size=large`;
+          const thumbUrl = `/api/thumbnail?path=${encodeURIComponent(imagePath)}&size=small`;
+          const quality = Number(item.quality_score || 0);
+          const printBadge = printValidationBadge(item);
+          const card = document.createElement('div');
+          card.className = 'img-card';
+          card.innerHTML = `
+            <div class="${stackClass}">
+              <img src="${escapeHtml(thumbUrl)}"
+                   data-thumb-url="${escapeHtml(thumbUrl)}"
+                   data-preview-url="${escapeHtml(previewUrl)}"
+                   data-full-url="/${escapeHtml(imagePath)}"
+                   alt="${escapeHtml(model)}"
+                   loading="lazy" />
+              ${overlayPath ? `<img class="overlay" src="/${escapeHtml(overlayPath)}" alt="overlay" />` : ''}
+            </div>
+            <label><input type="checkbox" data-compare-id="${escapeHtml(compareId)}" data-path="${escapeHtml(imagePath)}" data-model="${escapeHtml(model)}" /> compare</label>
+            ${styleTagHtml}
+            <div class="img-card-prompt expanded">
+              <div class="prompt-text">${escapeHtml(promptText || 'Prompt not available for this variant.')}</div>
+            </div>
+            <div class="img-card-actions">
+              <button type="button" class="btn-select-winner" data-select-winner="${variantNumber}" data-select-model="${escapeHtml(model)}">★ Select Winner</button>
+              <button type="button" class="btn-save-result-prompt" data-save-result-prompt="${variantNumber}" data-save-model="${escapeHtml(model)}">★ Save Prompt</button>
+              <button type="button" class="btn-regenerate" data-regenerate-model="${escapeHtml(model)}">↻ Regenerate</button>
+              <button type="button" class="btn-download" data-download-variant="${variantNumber}" data-download-model="${escapeHtml(model)}">⬇ Download</button>
+              <button type="button" class="btn-download-source" data-source-variant="${variantNumber}" data-source-model="${escapeHtml(model)}">⬇ Source</button>
+              <button type="button" class="btn-dismiss" data-dismiss-result="${escapeHtml(resultKey(item))}">🗑 Dismiss</button>
+              <button type="button" class="btn-copy-prompt" data-copy-prompt>📋 Copy Prompt</button>
+            </div>
+            <div class="meta">quality: ${quality > 0 ? quality.toFixed(2) : 'n/a'} · cost: $${Number(item.cost || 0).toFixed(3)} · ${Number(item.generation_time || 0).toFixed(2)}s</div>
+            <div class="meta meta-print">${printBadge}</div>
+          `;
+          const imgNode = card.querySelector('img[data-full-url]');
+          if (imgNode) {
+            imgNode.addEventListener('load', () => {
+              const lazyPreview = new Image();
+              lazyPreview.src = String(imgNode.dataset.previewUrl || '');
+            }, { once: true });
+            imgNode.addEventListener('click', () => {
+              openZoom({
+                thumbUrl: String(imgNode.dataset.thumbUrl || ''),
+                previewUrl: String(imgNode.dataset.previewUrl || ''),
+                fullUrl: String(imgNode.dataset.fullUrl || ''),
+              });
+            });
+          }
+          card.querySelector('input[data-compare-id]').addEventListener('change', handleCompareToggle);
+          const copyBtn = card.querySelector('[data-copy-prompt]');
+          if (copyBtn) {
+            copyBtn.addEventListener('click', () => {
+              if (!btnStartLoading(copyBtn, 'Copying...')) return;
+              copyPromptToClipboard(copyBtn, promptText);
+            });
+          }
+          const downloadBtn = card.querySelector('[data-download-variant]');
+          if (downloadBtn) {
+            downloadBtn.addEventListener('click', () => downloadVariant(bookNumber, variantNumber, model, downloadBtn));
+          }
+          const sourceBtn = card.querySelector('[data-source-variant]');
+          if (sourceBtn) {
+            sourceBtn.addEventListener('click', () => downloadSource(bookNumber, variantNumber, model, sourceBtn));
+          }
+          const winnerBtn = card.querySelector('[data-select-winner]');
+          if (winnerBtn) {
+            winnerBtn.addEventListener('click', async () => {
+              if (!btnStartLoading(winnerBtn, 'Saving...')) return;
+              try {
+                const ok = await selectWinner(bookNumber, variantNumber, model, quality);
+                btnStopLoading(winnerBtn, ok);
+              } catch (_) {
+                btnStopLoading(winnerBtn, false);
+              }
+            });
+          }
+          const savePromptBtn = card.querySelector('[data-save-result-prompt]');
+          if (savePromptBtn) {
+            savePromptBtn.addEventListener('click', async () => {
+              if (!btnStartLoading(savePromptBtn, 'Saving...')) return;
+              const ok = await saveResultPrompt({
+                promptText,
+                bookNumber,
+                model,
+                variantNumber,
+              });
+              btnStopLoading(savePromptBtn, ok);
+            });
+          }
+          const regenBtn = card.querySelector('[data-regenerate-model]');
+          if (regenBtn) {
+            regenBtn.addEventListener('click', () => regenerateModel(model));
+          }
+          const dismissBtn = card.querySelector('[data-dismiss-result]');
+          if (dismissBtn) {
+            dismissBtn.addEventListener('click', () => {
+              const key = String(dismissBtn.getAttribute('data-dismiss-result') || '');
+              if (!key) return;
+              app.dismissedResults.add(key);
+              renderResults();
+            });
+          }
+          images.appendChild(card);
+        });
+
+        root.appendChild(section);
+      });
+
+      updateCompareStatus();
+      renderRunSummaryBanner();
+    }
+
+    async function loadWeakBooks() {
+      const threshold = Number(qs('weakThreshold').value || 0.75);
+      qs('weakStatus').textContent = 'Loading weak books...';
+      try {
+        const res = await fetch(`/api/weak-books?threshold=${encodeURIComponent(threshold)}&${catalogQuery()}`);
+        const data = await res.json();
+        app.weakBooks = data.books || [];
+        renderWeakBooks();
+        qs('weakStatus').textContent = `Found ${app.weakBooks.length} weak books below ${threshold.toFixed(2)}.`;
+        showToast(`Loaded ${app.weakBooks.length} weak book(s).`, 'success', 2200);
+      } catch (err) {
+        const message = String((err && err.message) || err || 'Failed to load weak books.');
+        qs('weakStatus').textContent = message;
+        showToast(message, 'error');
+        throw err;
+      }
+    }
+
+    function renderWeakBooks() {
+      const root = qs('weakList');
+      if (!app.weakBooks.length) {
+        root.innerHTML = '<div class="status">No weak books at this threshold.</div>';
+        return;
+      }
+
+      root.innerHTML = app.weakBooks.map(row => {
+        const regen = app.regenResults[row.book] || null;
+        const candidates = (regen && regen.candidates) || [];
+        const candidatesHtml = candidates.length ? `<div class="weak-candidates">${candidates.map(c => `<div><img src="/${escapeHtml(c.path)}" alt="candidate" /><div class="status">${escapeHtml(c.prompt_name || c.prompt_id || 'candidate')} · ${Number(c.score || 0).toFixed(3)}</div></div>`).join('')}</div>` : '';
+        return `
+          <div class="weak-book" data-book="${row.book}">
+            <div class="row u-row-between-start">
+              <div>
+                <div><strong>${row.book}. ${escapeHtml(row.title || '')}</strong></div>
+                <div class="status">Current winner: Variant ${Number(row.winner_variant || 0)} · Score ${Number(row.winner_score || 0).toFixed(3)}</div>
+              </div>
+              ${row.image ? `<img src="/${escapeHtml(row.image)}" alt="winner" />` : ''}
+            </div>
+            <div class="row u-mt-8">
+              <button data-regen-book="${row.book}" type="button">Re-generate with new prompts</button>
+              <button data-accept-book="${row.book}" type="button" class="secondary">Accept New (>=+0.1)</button>
+              <button data-keep-book="${row.book}" type="button" class="ghost">Keep Current</button>
+            </div>
+            ${regen ? `<div class="status u-mt-8">Old ${Number(regen.old_winner_score || 0).toFixed(3)} -> New ${Number(regen.new_best_score || 0).toFixed(3)} (Δ ${Number(regen.improvement || 0).toFixed(3)})</div>` : ''}
+            ${candidatesHtml}
+          </div>
+        `;
+      }).join('');
+
+      root.querySelectorAll('[data-regen-book]').forEach(btn => btn.addEventListener('click', async () => {
+        if (!btnStartLoading(btn, 'Re-generating...')) return;
+        try {
+          const ok = await regenerateBook(Number(btn.dataset.regenBook), false);
+          btnStopLoading(btn, ok);
+        } catch (err) {
+          btnStopLoading(btn, false);
+        }
+      }));
+      root.querySelectorAll('[data-accept-book]').forEach(btn => btn.addEventListener('click', async () => {
+        if (!btnStartLoading(btn, 'Applying...')) return;
+        try {
+          const ok = await regenerateBook(Number(btn.dataset.acceptBook), true);
+          btnStopLoading(btn, ok);
+        } catch (err) {
+          btnStopLoading(btn, false);
+        }
+      }));
+      root.querySelectorAll('[data-keep-book]').forEach(btn => btn.addEventListener('click', () => keepCurrent(Number(btn.dataset.keepBook))));
+    }
+
+    async function regenerateBook(book, autoAccept) {
+      qs('weakStatus').textContent = `Re-generating book ${book}...`;
+      const payload = {
+        catalog: app.catalog,
+        book,
+        variants: Number(qs('variationCount').value || 5),
+        use_library: true,
+        auto_accept: Boolean(autoAccept),
+        threshold: Number(qs('weakThreshold').value || 0.75),
+      };
+      try {
+        const res = await fetch(`/api/regenerate?${catalogQuery()}`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
+        });
+        const data = await res.json();
+        if (!res.ok || !data.ok) {
+          const message = data.error || 'Re-generation failed.';
+          qs('weakStatus').textContent = message;
+          showToast(message, 'error');
+          return false;
+        }
+
+        const resultRes = await fetch(`/api/regeneration-results?book=${book}&${catalogQuery()}`);
+        const resultData = await resultRes.json();
+        const first = (resultData.results || [])[0];
+        if (first) app.regenResults[book] = first;
+        renderWeakBooks();
+        qs('weakStatus').textContent = `Re-generation finished for book ${book}.`;
+        showToast(`Re-generation finished for book ${book}.`, 'success', 2200);
+        await loadWeakBooks();
+        return true;
+      } catch (err) {
+        const message = String((err && err.message) || err || 'Re-generation failed.');
+        qs('weakStatus').textContent = message;
+        showToast(message, 'error');
+        return false;
+      }
+    }
+
+    function keepCurrent(book) {
+      delete app.regenResults[book];
+      renderWeakBooks();
+      qs('weakStatus').textContent = `Kept current winner for book ${book}.`;
+    }
+
+    async function regenerateAllWeakBooks() {
+      if (!app.weakBooks.length) {
+        qs('weakStatus').textContent = 'No weak books loaded.';
+        return false;
+      }
+      let done = 0;
+      let allOk = true;
+      for (const row of app.weakBooks) {
+        done += 1;
+        qs('weakStatus').textContent = `Batch re-generation ${done}/${app.weakBooks.length} (book ${row.book})...`;
+        const ok = await regenerateBook(Number(row.book), false);
+        if (!ok) allOk = false;
+      }
+      qs('weakStatus').textContent = allOk
+        ? `Batch re-generation complete (${app.weakBooks.length} books).`
+        : `Batch re-generation completed with failures (${app.weakBooks.length} books).`;
+      return allOk;
+    }
+
+    function switchTab(name) {
+      app.activeTab = name;
+      qs('tabResults').classList.toggle('active', name === 'results');
+      qs('tabWeak').classList.toggle('active', name === 'weak');
+      qs('resultsPanel').classList.toggle('active', name === 'results');
+      qs('weakPanel').classList.toggle('active', name === 'weak');
+    }
+
+    function handleCompareToggle(event) {
+      const input = event.target;
+      const key = input.dataset.compareId || input.dataset.historyCompare;
+      const path = input.dataset.path || input.dataset.comparePath;
+      const model = input.dataset.model || input.dataset.compareModel || 'unknown';
+      if (!key || !path) return;
+      if (input.checked) app.compareSelections.set(key, { path, model });
+      else app.compareSelections.delete(key);
+      updateCompareStatus();
+    }
+
+    function updateCompareStatus() {
+      const n = app.compareSelections.size;
+      qs('compareStatus').textContent = n < 2
+        ? 'Pick 2-4 images and click Compare Selected.'
+        : `${n} selected. Click Compare Selected.`;
+    }
+
+    function selectedCompareItems() {
+      return Array.from(app.compareSelections.values()).slice(0, 4);
+    }
+
+    function openCompareModal() {
+      const selected = selectedCompareItems();
+      if (selected.length < 2 || selected.length > 4) {
+        qs('compareStatus').textContent = 'Comparison requires 2-4 selected images.';
+        return;
+      }
+      const content = qs('compareContent');
+      content.innerHTML = '';
+
+      if (selected.length === 2) {
+        const wrap = document.createElement('div');
+        wrap.innerHTML = `
+          <div class="meta u-mb-8">A/B slider (${escapeHtml(selected[0].model)} vs ${escapeHtml(selected[1].model)})</div>
+          <div class="ab-wrap" id="abWrap">
+            <img src="/${escapeHtml(selected[0].path)}" alt="A" />
+            <div class="ab-top" id="abTop"><img src="/${escapeHtml(selected[1].path)}" alt="B" /></div>
+          </div>
+          <input id="abSlider" type="range" min="0" max="100" value="50" class="u-w-full u-mt-10" />
+          <div class="meta">Click image to zoom. Slider moves B-image reveal.</div>
+        `;
+        content.appendChild(wrap);
+        const top = qs('abTop');
+        const slider = qs('abSlider');
+        const apply = () => top.style.clipPath = `inset(0 ${100 - Number(slider.value)}% 0 0)`;
+        slider.addEventListener('input', apply);
+        apply();
+        wrap.querySelectorAll('img').forEach(img => img.addEventListener('click', () => openZoom(img.getAttribute('src'))));
+      } else {
+        const grid = document.createElement('div');
+        grid.className = 'compare-grid';
+        grid.innerHTML = selected.map(item => `
+          <div>
+            <div class="meta u-mb-4">${escapeHtml(item.model)}</div>
+            <img src="/${escapeHtml(item.path)}" alt="compare" />
+          </div>
+        `).join('');
+        grid.querySelectorAll('img').forEach(img => img.addEventListener('click', () => openZoom(img.getAttribute('src'))));
+        content.appendChild(grid);
+      }
+
+      qs('compareModal').style.display = 'flex';
+    }
+
+    function openZoom(payload) {
+      const thumbUrl = typeof payload === 'string' ? payload : String((payload && payload.thumbUrl) || '');
+      const previewUrl = typeof payload === 'string' ? payload : String((payload && payload.previewUrl) || thumbUrl || '');
+      const fullUrl = typeof payload === 'string' ? payload : String((payload && payload.fullUrl) || previewUrl || thumbUrl || '');
+      if (!thumbUrl && !previewUrl && !fullUrl) return;
+      const modal = qs('zoomModal');
+      const img = qs('zoomImg');
+      const loading = qs('zoomLoading');
+      modal.style.display = 'flex';
+      img.classList.add('zoom-loading-image');
+      img.src = thumbUrl || previewUrl || fullUrl;
+      loading.textContent = 'Loading high resolution preview…';
+      loading.style.display = 'block';
+
+      const applyImage = (url) => {
+        if (!url) return;
+        img.src = url;
+      };
+
+      const cachedFull = app.zoomCache.get(fullUrl);
+      if (cachedFull) {
+        applyImage(cachedFull);
+        img.classList.remove('zoom-loading-image');
+        loading.style.display = 'none';
+        return;
+      }
+
+      if (previewUrl && previewUrl !== thumbUrl) {
+        const previewImage = new Image();
+        previewImage.onload = () => {
+          applyImage(previewUrl);
+          img.classList.remove('zoom-loading-image');
+          loading.textContent = 'Loading full resolution…';
+        };
+        previewImage.src = previewUrl;
+      }
+
+      if (fullUrl) {
+        const fullImage = new Image();
+        fullImage.onload = () => {
+          app.zoomCache.set(fullUrl, fullUrl);
+          applyImage(fullUrl);
+          img.classList.remove('zoom-loading-image');
+          loading.style.display = 'none';
+        };
+        fullImage.onerror = () => {
+          loading.style.display = 'none';
+        };
+        fullImage.src = fullUrl;
+      }
+    }
+
+    async function savePromptToLibrary() {
+      const book = currentBook();
+      if (!book) return;
+      const btn = qs('savePromptBtn');
+      if (!btnStartLoading(btn, 'Saving...')) return;
+      try {
+        const editorPrompt = String(qs('promptEditor').value || '').trim();
+        let template = editorPrompt
+          .replaceAll(String(book.title || ''), '{title}')
+          .replaceAll(String(book.author || ''), '{author}')
+          .trim();
+        if (!template.includes('{title}')) {
+          template = `For "{title}" by {author}: ${template}`.trim();
+        }
+        const payload = {
+          catalog: app.catalog,
+          name: `Iterate ${book.number}`,
+          prompt_template: template,
+          tags: ['iterative'],
+          style_anchors: Array.from(app.selectedAnchors),
+        };
+        const res = await fetch(`/api/save-prompt?${catalogQuery()}`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
+        });
+        if (res.ok) {
+          btnStopLoading(btn, true);
+          showToast('Prompt saved to library.', 'success');
+          await refreshIterateData();
+        } else {
+          btnStopLoading(btn, false);
+          showToast('Failed to save prompt.', 'error');
+        }
+      } catch (err) {
+        btnStopLoading(btn, false);
+        showToast('Error saving prompt: ' + (err.message || err), 'error');
+      }
+    }
+
+    async function saveResultPrompt({ promptText, bookNumber, model, variantNumber }) {
+      const book = currentBook();
+      const title = String((book && book.title) || `Book ${bookNumber || ''}`).trim();
+      const author = String((book && book.author) || '').trim();
+      const raw = String(promptText || '').trim();
+      if (!raw) {
+        showToast('This result has no prompt to save.', 'error');
+        return false;
+      }
+      let template = raw
+        .replaceAll(title, '{title}')
+        .replaceAll(author, '{author}')
+        .trim();
+      if (!template.includes('{title}')) {
+        template = `For "{title}" by {author}: ${template}`.trim();
+      }
+      const payload = {
+        catalog: app.catalog,
+        name: `${title} — ${model} v${Number(variantNumber || 0)}`,
+        prompt_template: template,
+        tags: ['iterative', 'result_card', String(model || '').trim().toLowerCase()],
+        style_anchors: [],
+        notes: `Saved from result card (variant ${Number(variantNumber || 0)}).`,
+      };
+      try {
+        const res = await fetch(`/api/save-prompt?${catalogQuery()}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        if (!res.ok) {
+          showToast('Failed to save result prompt.', 'error');
+          return false;
+        }
+        showToast('Result prompt saved.', 'success', 1800);
+        return true;
+      } catch (err) {
+        showToast('Error saving result prompt: ' + ((err && err.message) || err), 'error');
+        return false;
+      }
+    }
+
+    function historyCompareCheckbox(item, idx) {
+      const imagePath = item.composited_path || item.image_path;
+      if (!imagePath) return '';
+      return `<label><input type="checkbox" data-history-compare="h-${idx}" data-path="${escapeHtml(imagePath)}" data-model="${escapeHtml(item.model || 'unknown')}" /> compare</label>`;
+    }
+
+    function inferJobStage(job) {
+      const errorStage = String((job && job.error && job.error.stage) || '').trim();
+      if (errorStage) return errorStage;
+      const result = (job && job.result && typeof job.result === 'object') ? job.result : {};
+      const stages = (result && typeof result.stages === 'object') ? result.stages : {};
+      const ordered = ['generate', 'composite', 'persist'];
+      for (const token of ordered) {
+        const state = String(((stages[token] || {}).status || '')).trim().toLowerCase();
+        if (state === 'running') return `${token} (running)`;
+        if (state === 'failed') return `${token} (failed)`;
+      }
+      const completed = ordered.filter(token => String(((stages[token] || {}).status || '')).trim().toLowerCase() === 'completed').length;
+      if (completed > 0) return `${completed}/3 stages completed`;
+      return String((job && job.status) || 'queued');
+    }
+
+    function formatElapsed(ms) {
+      if (!Number.isFinite(ms) || ms <= 0) return '0s';
+      const total = Math.floor(ms / 1000);
+      const h = Math.floor(total / 3600);
+      const m = Math.floor((total % 3600) / 60);
+      const s = total % 60;
+      if (h > 0) return `${h}h ${m}m ${s}s`;
+      if (m > 0) return `${m}m ${s}s`;
+      return `${s}s`;
+    }
+
+    function shortModelList(models) {
+      const rows = Array.isArray(models) ? models : [];
+      if (!rows.length) return 'none';
+      if (rows.length <= 3) return rows.join(', ');
+      return `${rows.slice(0, 3).join(', ')} +${rows.length - 3} more`;
+    }
+
+    function resetHeartbeat(message) {
+      app.heartbeat = {
+        jobId: '',
+        status: 'idle',
+        stage: '-',
+        message: String(message || 'No generation started.'),
+        attempts: 0,
+        maxAttempts: 0,
+        startedAt: '',
+        lastUpdateAt: '',
+        bookNumber: Number(currentBook() && currentBook().number || 0),
+        bookTitle: String(currentBook() && currentBook().title || ''),
+        coverSource: app.coverSource,
+        models: selectedModels(),
+        variants: Number(qs('variationCount').value || 0),
+        provider: String(qs('providerSelect').value || app.selectedProvider || 'all'),
+        error: '',
+        stalled: false,
+      };
+      renderHeartbeat();
+    }
+
+    function updateHeartbeat(patch) {
+      if (!app.heartbeat) resetHeartbeat('No generation started.');
+      app.heartbeat = Object.assign({}, app.heartbeat, patch || {});
+      renderHeartbeat();
+    }
+
+    function renderHeartbeat() {
+      const node = qs('heartbeatPanel');
+      if (!node) return;
+      if (!app.heartbeat) resetHeartbeat('No generation started.');
+      const hb = app.heartbeat || {};
+      const status = String(hb.status || 'idle');
+      const isIdle = status === 'idle';
+      const isActive = ['submitting', 'queued', 'running', 'polling', 'stream-stalled'].includes(status);
+      const isCompleted = status === 'completed';
+      const isFailed = ['failed', 'cancelled', 'timeout', 'blocked'].includes(status);
+
+      node.classList.toggle('heartbeat-idle', isIdle);
+      node.classList.toggle('heartbeat-active', isActive);
+      node.classList.toggle('heartbeat-completed', isCompleted);
+      node.classList.toggle('heartbeat-failed', isFailed);
+
+      if (isIdle) {
+        node.innerHTML = `
+          <div class="heartbeat-title">Heartbeat</div>
+          <div class="heartbeat-message">No active generation job.</div>
+        `;
+        return;
+      }
+
+      const now = Date.now();
+      const startedAt = hb.startedAt ? Date.parse(String(hb.startedAt)) : NaN;
+      const updatedAt = hb.lastUpdateAt ? Date.parse(String(hb.lastUpdateAt)) : NaN;
+      const elapsed = Number.isFinite(startedAt) ? formatElapsed(now - startedAt) : '-';
+      const sinceUpdate = Number.isFinite(updatedAt) ? formatElapsed(now - updatedAt) : '-';
+      const staleSeconds = Number.isFinite(updatedAt) ? Math.max(0, Math.floor((now - updatedAt) / 1000)) : 0;
+      const isStalled = Boolean(hb.stalled) || (isActive && staleSeconds >= 20);
+      const stageToken = String(hb.stage || '').toLowerCase();
+      const queueWaitSeconds = Number.isFinite(startedAt) ? Math.max(0, Math.floor((now - startedAt) / 1000)) : 0;
+      const showQueueAdvisory = isActive && stageToken.includes('queue') && queueWaitSeconds >= 15;
+      const attemptsText = Number(hb.maxAttempts || 0) > 0
+        ? `${Number(hb.attempts || 0)}/${Number(hb.maxAttempts || 0)}`
+        : String(Number(hb.attempts || 0));
+      const progressRows = Object.values(app.modelProgress || {}).map((row) => {
+        const done = Number(row && row.completed || 0);
+        const total = Math.max(1, Number(row && row.total || 0));
+        const percent = Math.max(0, Math.min(100, Math.round((done / total) * 100)));
+        const statusToken = String(row && row.status || 'queued');
+        const etaSeconds = Math.max(0, Number(row && row.etaSeconds || 0));
+        const etaLabel = statusToken === 'completed' || etaSeconds <= 0 ? '' : ` · ETA ${humanDuration(etaSeconds)}`;
+        return `
+          <div class="heartbeat-model-row">
+            <div class="heartbeat-model-head">
+              <strong>${escapeHtml(String(row && row.model || 'model'))}</strong>
+              <span>${done}/${total} (${percent}%) • ${escapeHtml(statusToken)}${escapeHtml(etaLabel)}</span>
+            </div>
+            <div class="heartbeat-progress"><div class="heartbeat-progress-fill" data-progress-pct="${percent}"></div></div>
+            <button type="button" class="heartbeat-cancel-btn" data-cancel-model="${escapeHtml(String(row && row.model || ''))}" ${statusToken === 'completed' ? 'disabled' : ''}>Cancel Model</button>
+          </div>
+        `;
+      }).join('');
+      node.innerHTML = `
+        <div class="heartbeat-title">Heartbeat</div>
+        <div class="heartbeat-message">${escapeHtml(String(hb.message || 'No generation started.'))}</div>
+        ${isStalled ? `<div class="heartbeat-stall-note">No update for ${escapeHtml(String(sinceUpdate))}. Auto-recovery is checking job status.</div>` : ''}
+        ${showQueueAdvisory ? '<div class="heartbeat-stall-note">Waiting for the first provider response. First image can take 30-120s depending on model/provider load.</div>' : ''}
+        <div class="heartbeat-grid">
+          <div><strong>Status</strong><span>${escapeHtml(String(hb.status || '-'))}</span></div>
+          <div><strong>Stage</strong><span>${escapeHtml(String(hb.stage || '-'))}</span></div>
+          <div><strong>Job ID</strong><span>${escapeHtml(String(hb.jobId || '-'))}</span></div>
+          <div><strong>Attempts</strong><span>${escapeHtml(attemptsText)}</span></div>
+          <div><strong>Elapsed</strong><span>${escapeHtml(elapsed)}</span></div>
+          <div><strong>Updated</strong><span>${escapeHtml(sinceUpdate)} ago</span></div>
+          <div><strong>Book</strong><span>${escapeHtml(`${Number(hb.bookNumber || 0) > 0 ? `${Number(hb.bookNumber)}.` : ''} ${String(hb.bookTitle || '').trim()}`.trim() || '-')}</span></div>
+          <div><strong>Cover Source</strong><span>${escapeHtml(String(hb.coverSource || '-'))}</span></div>
+          <div><strong>Provider</strong><span>${escapeHtml(String(hb.provider || '-'))}</span></div>
+          <div><strong>Variants/Model</strong><span>${escapeHtml(String(hb.variants || 0))}</span></div>
+          <div><strong>Models</strong><span>${escapeHtml(`${Array.isArray(hb.models) ? hb.models.length : 0} selected`)}</span></div>
+          <div><strong>Model List</strong><span>${escapeHtml(shortModelList(hb.models || []))}</span></div>
+          ${hb.error && hb.error !== '-' ? `<div><strong>Error</strong><span>${escapeHtml(String(hb.error))}</span></div>` : ''}
+        </div>
+        <div class="heartbeat-model-progress">${progressRows || '<div class="status">Per-model progress appears when generation starts.</div>'}</div>
+      `;
+      node.querySelectorAll('[data-cancel-model]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const model = String(btn.getAttribute('data-cancel-model') || '').trim();
+          if (!model) return;
+          cancelModelFromHeartbeat(model);
+        });
+      });
+      node.querySelectorAll('[data-progress-pct]').forEach(fill => {
+        const pct = Math.max(0, Math.min(100, Number(fill.getAttribute('data-progress-pct') || 0)));
+        fill.style.width = `${pct}%`;
+      });
+    }
+
+    async function cancelModelFromHeartbeat(model) {
+      if (!model) return;
+      const row = app.modelProgress[model] || {};
+      row.status = 'cancelled';
+      app.modelProgress[model] = row;
+      app.modelSelection.delete(model);
+      app.modelSelectionTouched = true;
+      renderModels();
+      renderQuickControls();
+      renderHeartbeat();
+      if (!app.latestJobId) {
+        showToast(`Marked ${model} as cancelled for this run.`, 'info', 2000);
+        return;
+      }
+      try {
+        const res = await fetch(`/api/jobs/${encodeURIComponent(app.latestJobId)}/cancel-model?${catalogQuery()}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ model, reason: 'cancelled from iterate heartbeat' }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data.ok) {
+          throw new Error(data.error || data.message || `HTTP ${res.status}`);
+        }
+        showToast(`Model ${model} cancellation requested.`, 'success', 2200);
+        pushNotification(`Model ${model} cancellation requested for job ${app.latestJobId}.`, 'info');
+      } catch (error) {
+        showToast(`Could not cancel model ${model}: ${String((error && error.message) || error || 'unknown error')}`, 'error');
+      }
+    }
+
+    function shortPrompt(text) { return text.length > 90 ? `${text.slice(0, 90)}...` : text; }
+
+    function escapeHtml(value) {
+      return String(value)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;');
+    }
+
+    function bindEvents() {
+      qs('quickModeBtn').addEventListener('click', () => setMode('quick'));
+      qs('advancedModeBtn').addEventListener('click', () => setMode('advanced'));
+      qs('quickBookSelect').addEventListener('change', (event) => {
+        qs('bookSelect').value = String(event.target.value || '');
+        onBookChange();
+      });
+      ['presetCheapest', 'presetBalanced', 'presetPremium'].forEach(id => {
+        const node = qs(id);
+        if (!node) return;
+        node.addEventListener('click', () => {
+          const token = String(node.getAttribute('data-preset') || '').trim().toLowerCase();
+          if (!token) return;
+          applyBudgetPreset(token, { user: true, silent: false });
+        });
+      });
+      qs('quickGenerateBtn').addEventListener('click', () => generate(qs('quickGenerateBtn')));
+      qs('notificationBell').addEventListener('click', () => toggleNotifications());
+      qs('notificationCloseBtn').addEventListener('click', () => toggleNotifications(false));
+      qs('catalogSelect').addEventListener('change', (event) => {
+        const value = event.target.value;
+        const url = new URL(window.location.href);
+        url.searchParams.set('catalog', value);
+        window.location.href = url.toString();
+      });
+      qs('coverSourceSelect').addEventListener('change', async (event) => {
+        app.coverSource = (event.target.value === 'drive') ? 'drive' : 'catalog';
+        renderCoverPickers();
+        if (app.coverSource === 'drive') {
+          await loadDriveCovers();
+        }
+        applyCoverSource();
+      });
+      qs('refreshDriveCoversBtn').addEventListener('click', async () => {
+        const btn = qs('refreshDriveCoversBtn');
+        if (!btnStartLoading(btn, 'Loading...')) return;
+        try {
+          const ok = await loadDriveCovers({ silent: false, force: true });
+          if (app.coverSource === 'drive') {
+            applyCoverSource();
+          }
+          btnStopLoading(btn, ok);
+        } catch (e) {
+          btnStopLoading(btn, false);
+        }
+      });
+      qs('driveCoverSelect').addEventListener('change', () => onDriveCoverChange({ silent: false }));
+      qs('bookSelect').addEventListener('change', onBookChange);
+      qs('templateSelect').addEventListener('change', (event) => {
+        app.selectedTemplateId = String(event.target.value || '').trim();
+        renderTemplateControls();
+        applyPromptSource(currentBook());
+      });
+      qs('templateGenreFilter').addEventListener('change', (event) => {
+        app.templateGenreFilter = String(event.target.value || '').trim().toLowerCase();
+        renderTemplateControls();
+        applyPromptSource(currentBook());
+      });
+      qs('promptSource').addEventListener('change', (event) => {
+        app.promptSource = event.target.value || 'template';
+        applyPromptSource(currentBook());
+      });
+      qs('promptEditor').addEventListener('input', () => {
+        renderPromptComposition(currentBook(), composePromptForBook(currentBook() || {}, { basePromptOverride: qs('promptEditor').value }));
+      });
+      qs('providerSelect').addEventListener('change', (event) => { app.selectedProvider = event.target.value || 'all'; renderModels(); });
+      qs('variationCount').addEventListener('input', () => {
+        const max = Math.max(1, Number(app.maxGenerationVariants || 20));
+        const value = Math.max(1, Math.min(max, Number(qs('variationCount').value || 1)));
+        qs('variationCount').value = String(value);
+        loadCostProjection();
+        renderHeartbeat();
+      });
+      qs('selectAllModels').addEventListener('click', () => {
+        app.modelSelectionTouched = true;
+        visibleModels().forEach(model => {
+          const provider = modelProvider(model);
+          if (provider && providerDisabled(provider)) return;
+          app.modelSelection.add(model);
+        });
+        renderModels();
+        renderQuickControls();
+        loadCostProjection();
+        renderHeartbeat();
+      });
+      qs('clearModels').addEventListener('click', () => {
+        app.modelSelectionTouched = true;
+        visibleModels().forEach(model => app.modelSelection.delete(model));
+        renderModels();
+        renderQuickControls();
+        loadCostProjection();
+        renderHeartbeat();
+      });
+      qs('testConnectionBtn').addEventListener('click', testConnection);
+      qs('providerRecheckBtn').addEventListener('click', async () => {
+        const btn = qs('providerRecheckBtn');
+        if (!btnStartLoading(btn, 'Checking...')) return;
+        try {
+          const ok = await refreshProviderConnectivity({ force: true, silent: false });
+          btnStopLoading(btn, ok);
+          showToast(ok ? 'Provider connectivity refreshed.' : (app.providerConnectivityError || 'Provider connectivity check failed.'), ok ? 'success' : 'error', 2200);
+        } catch (e) {
+          btnStopLoading(btn, false);
+          showToast('Provider connectivity check failed.', 'error');
+        }
+      });
+      qs('enrichBookBtn').addEventListener('click', enrichCurrentBook);
+      qs('generateSmartPromptsBtn').addEventListener('click', generateSmartPromptsForCurrentBook);
+      qs('generateBtn').addEventListener('click', () => generate(qs('generateBtn')));
+      qs('savePromptBtn').addEventListener('click', savePromptToLibrary);
+      qs('toggleOverlayBtn').addEventListener('click', () => {
+        app.fitOverlayEnabled = !app.fitOverlayEnabled;
+        qs('toggleOverlayBtn').textContent = app.fitOverlayEnabled ? 'Hide Fit Overlay' : 'Show Fit Overlay';
+        renderResults();
+      });
+      qs('libraryFilter').addEventListener('input', renderLibrary);
+      qs('openCompareBtn').addEventListener('click', openCompareModal);
+      qs('downloadWinnerBtn').addEventListener('click', () => {
+        const btn = qs('downloadWinnerBtn');
+        const book = Number(btn.dataset.book || 0);
+        downloadWinner(book, btn);
+      });
+      qs('downloadBookBtn').addEventListener('click', () => {
+        const btn = qs('downloadBookBtn');
+        const book = Number(currentBook() && currentBook().number || 0);
+        downloadBookVariants(book, btn);
+      });
+      qs('downloadApprovedBtn').addEventListener('click', () => {
+        downloadApproved(qs('downloadApprovedBtn'));
+      });
+      qs('closeCompareBtn').addEventListener('click', () => qs('compareModal').style.display = 'none');
+      qs('compareModal').addEventListener('click', (e) => { if (e.target === qs('compareModal')) qs('compareModal').style.display = 'none'; });
+      qs('zoomModal').addEventListener('click', () => qs('zoomModal').style.display = 'none');
+      qs('closeHelpBtn').addEventListener('click', () => qs('helpModal').style.display = 'none');
+      qs('helpModal').addEventListener('click', (e) => { if (e.target === qs('helpModal')) qs('helpModal').style.display = 'none'; });
+      qs('tabResults').addEventListener('click', () => switchTab('results'));
+      qs('tabWeak').addEventListener('click', () => switchTab('weak'));
+      qs('loadWeakBtn').addEventListener('click', async () => {
+        const btn = qs('loadWeakBtn');
+        if (!btnStartLoading(btn, 'Loading...')) return;
+        try { await loadWeakBooks(); btnStopLoading(btn, true); } catch (e) { btnStopLoading(btn, false); }
+      });
+      qs('regenAllWeakBtn').addEventListener('click', async () => {
+        const btn = qs('regenAllWeakBtn');
+        if (!btnStartLoading(btn, 'Re-generating...')) return;
+        try {
+          const ok = await regenerateAllWeakBooks();
+          btnStopLoading(btn, ok);
+          if (!ok) showToast('Some weak-book re-generations failed.', 'error');
+        } catch (e) {
+          btnStopLoading(btn, false);
+        }
+      });
+
+      document.addEventListener('keydown', (event) => {
+        const key = event.key;
+        const targetTag = (event.target && event.target.tagName || '').toLowerCase();
+        const typing = ['input', 'textarea', 'select'].includes(targetTag);
+        if (typing && key !== '?') return;
+
+        if ((key === '?' || (key === '/' && event.shiftKey)) && !event.metaKey && !event.ctrlKey) {
+          event.preventDefault();
+          qs('helpModal').style.display = 'flex';
+          return;
+        }
+        if (key.toLowerCase() === 'g') {
+          event.preventDefault();
+          generate(app.uiMode === 'quick' ? qs('quickGenerateBtn') : qs('generateBtn'));
+          return;
+        }
+        if (key.toLowerCase() === 's') {
+          event.preventDefault();
+          savePromptToLibrary();
+          return;
+        }
+        if (key === ' ') {
+          event.preventDefault();
+          setMode(app.uiMode === 'quick' ? 'advanced' : 'quick');
+          return;
+        }
+        if (key === 'Enter') {
+          event.preventDefault();
+          generate(app.uiMode === 'quick' ? qs('quickGenerateBtn') : qs('generateBtn'));
+          return;
+        }
+        if (key === 'Escape') {
+          event.preventDefault();
+          if (qs('compareModal').style.display === 'flex') qs('compareModal').style.display = 'none';
+          if (qs('zoomModal').style.display === 'flex') qs('zoomModal').style.display = 'none';
+          if (app.latestJobId) {
+            fetch(`/api/jobs/${encodeURIComponent(app.latestJobId)}/cancel?${catalogQuery()}`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ reason: 'cancelled from keyboard escape' }),
+            }).catch(() => {});
+            showToast('Cancel requested for current job.', 'info', 1800);
+          }
+          return;
+        }
+        if (/^[1-9]$/.test(key)) {
+          event.preventDefault();
+          const position = Number(key);
+          const boxes = Array.from(document.querySelectorAll('#results input[data-compare-id]'));
+          const target = boxes[position - 1];
+          if (target) {
+            target.checked = !target.checked;
+            target.dispatchEvent(new Event('change', { bubbles: true }));
+            showToast(`Toggled result slot ${position}.`, 'info', 1300);
+          }
+        }
+      });
+      window.addEventListener('beforeunload', () => {
+        closeJobEventStream();
+        stopHeartbeatAutoRefresh();
+        revokeCoverPreviewUrl();
+      });
+    }
+
+    init();
+  </script>
+  <script src="/src/static/navbar.js?v=20260302-designlock"></script>
+</body>
+</html>
