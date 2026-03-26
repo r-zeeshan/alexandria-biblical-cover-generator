@@ -2924,7 +2924,7 @@ window.Pages.iterate = {
       generateBtn.textContent = 'Generating…';
     }
 
-    const waitForTerminalJobs = (jobIds, timeoutMs = 600000) => new Promise((resolve) => {
+    const waitForTerminalJobs = (jobIds, timeoutMs = 1800000) => new Promise((resolve) => {
       const isTerminal = () => jobIds.every((jobId) => {
         const row = DB.dbGet('jobs', jobId);
         return row && ['completed', 'failed', 'cancelled'].includes(String(row.status || ''));

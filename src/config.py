@@ -363,7 +363,7 @@ SLO_ALERT_LEVELS = [
     token.strip().lower() for token in os.getenv("SLO_ALERT_LEVELS", "breached,at_risk").split(",") if token.strip()
 ]
 SLO_MONITOR_INTERVAL_SECONDS = int(os.getenv("SLO_MONITOR_INTERVAL_SECONDS", "300"))
-JOB_WORKERS = int(os.getenv("JOB_WORKERS", "10"))
+JOB_WORKERS = int(os.getenv("JOB_WORKERS", "20"))
 JOB_WORKER_MODE = os.getenv("JOB_WORKER_MODE", "inline").strip().lower() or "inline"
 JOB_WORKER_HEARTBEAT_PATH = PROJECT_ROOT / os.getenv("JOB_WORKER_HEARTBEAT_PATH", "data/worker_heartbeat.json")
 JOB_WORKER_HEARTBEAT_STALE_SECONDS = int(os.getenv("JOB_WORKER_HEARTBEAT_STALE_SECONDS", "120"))

@@ -196,7 +196,7 @@ _STARTUP_STATE: dict[str, Any] = {
 }
 JOBS_DB_PATH = PROJECT_ROOT / os.getenv("JOBS_DB_PATH", "data/jobs.sqlite3")
 STATE_DB_PATH = PROJECT_ROOT / os.getenv("STATE_DB_PATH", "data/state.sqlite3")
-JOB_WORKER_COUNT = max(1, int(os.getenv("JOB_WORKERS", "10")))
+JOB_WORKER_COUNT = max(1, int(os.getenv("JOB_WORKERS", "20")))
 JOB_STALE_RECOVERY_SECONDS = max(30, int(os.getenv("JOB_STALE_RECOVERY_SECONDS", "1800")))
 JOB_STALE_RECOVERY_RETRY_DELAY_SECONDS = max(1.0, float(os.getenv("JOB_STALE_RECOVERY_RETRY_DELAY_SECONDS", "2.0")))
 JOB_WORKER_MODE = str(os.getenv("JOB_WORKER_MODE", "inline")).strip().lower() or "inline"
