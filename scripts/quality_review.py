@@ -53,6 +53,7 @@ try:
     from src import config
     from src import content_relevance
     from src import cost_tracker
+    from src import biblical_compositor
     from src import cover_compositor
     from src import pdf_compositor
     from src import disaster_recovery
@@ -1205,6 +1206,7 @@ class JobWorkerPool:
                     logger.error(
                         "Async generation job failed",
                         extra={"job_id": job.id, "error": str(exc), "stage": exc.stage},
+                        exc_info=True,
                     )
                 self._write_heartbeat(worker_id=worker_id, state="idle")
             except (image_generator.RetryableGenerationError, requests.RequestException) as exc:
@@ -2110,6 +2112,36 @@ def _rebuild_saved_composite_from_raw_art(*, runtime: config.Config, row: dict[s
     variant = _safe_int(row.get("variant"), 0)
     if raw_art is None or not raw_art.exists() or book_number <= 0 or variant <= 0:
         return None
+
+    # Biblical catalog: use biblical compositor (template-based, no input covers)
+    _is_biblical = (getattr(runtime, "cover_style", "") == "navy_gold_medallion" and runtime.catalog_id != "classics")
+    if _is_biblical:
+        from PIL import Image as _PILImage
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        book_meta = biblical_compositor._load_book_meta(runtime.book_catalog_path, book_number)
+        if not book_meta:
+            return None
+        ai_art = _PILImage.open(raw_art)
+        cover = biblical_compositor.compose_biblical_cover(
+            ai_art=ai_art,
+            title=book_meta.get("title", ""),
+            subtitle=book_meta.get("subtitle", ""),
+            author=book_meta.get("author", ""),
+            back_description=book_meta.get("back_cover_description", ""),
+        )
+        cover.save(str(output_path), "JPEG", quality=95, dpi=(300, 300))
+        rebuilt = output_path
+        _write_saved_composite_manifest(
+            composite_path=rebuilt,
+            job_token=_generation_artifact_job_token(row=row),
+            book_number=book_number,
+            variant=variant,
+            model_token=str(row.get("model", "unknown")),
+            raw_art_source=raw_art,
+            raw_art_path_token=_to_project_relative(raw_art),
+        )
+        return rebuilt
+
     cover_path = _first_local_cover_path(runtime=runtime, book_number=book_number)
     if cover_path is None or not cover_path.exists():
         cover_path, _status, _meta = _resolve_cover_preview_source_path(
@@ -2913,7 +2945,9 @@ def _execute_generation_payload(
         try:
             keep_paths = _current_run_generated_paths(runtime=runtime, rows=serialized)
             _prune_stale_generated_variants_for_book(runtime=runtime, book_number=book, keep_paths=keep_paths)
-            if cover_source == "drive":
+            # Biblical catalog uses template-based compositing — no input covers needed
+            _is_biblical = (getattr(runtime, "cover_style", "") == "navy_gold_medallion" and runtime.catalog_id != "classics")
+            if not _is_biblical and cover_source == "drive":
                 _emit_stage("download", "Downloading cover from Google Drive...", 0.03)
                 effective_drive_folder_id = (
                     drive_folder_id
@@ -2953,40 +2987,52 @@ def _execute_generation_payload(
                     ),
                     0.15,
                 )
-            used_pdf_mode = False
-            source_pdf = pdf_compositor.find_source_pdf_for_book(
-                input_dir=runtime.input_dir,
-                book_number=book,
-                catalog_path=runtime.book_catalog_path,
-            )
-            if source_pdf is not None:
-                _emit_stage("composite", "Compositing generated variants via source PDF...", 0.78)
-                try:
-                    pdf_compositor.composite_all_variants(
+            # --- Biblical compositor (template-based, no input covers needed) ---
+            if getattr(runtime, "cover_style", "") == "navy_gold_medallion" and runtime.catalog_id != "classics":
+                _emit_stage("composite", "Compositing biblical cover with template...", 0.78)
+                biblical_compositor.composite_all_variants(
+                    book_number=book,
+                    generated_dir=generated_root,
+                    output_dir=composited_root,
+                    catalog_path=runtime.book_catalog_path,
+                )
+                used_pdf_mode = False
+            else:
+                # --- Classics compositor (PDF or JPG fallback) ---
+                used_pdf_mode = False
+                source_pdf = pdf_compositor.find_source_pdf_for_book(
+                    input_dir=runtime.input_dir,
+                    book_number=book,
+                    catalog_path=runtime.book_catalog_path,
+                )
+                if source_pdf is not None:
+                    _emit_stage("composite", "Compositing generated variants via source PDF...", 0.78)
+                    try:
+                        pdf_compositor.composite_all_variants(
+                            book_number=book,
+                            input_dir=runtime.input_dir,
+                            generated_dir=generated_root,
+                            output_dir=composited_root,
+                            catalog_path=runtime.book_catalog_path,
+                        )
+                        used_pdf_mode = True
+                    except Exception as pdf_exc:
+                        logger.warning(
+                            "PDF compositor failed for book %s; falling back to JPG compositor: %s",
+                            book,
+                            pdf_exc,
+                        )
+
+                if not used_pdf_mode:
+                    _emit_stage("composite", "Compositing generated variants via JPG fallback...", 0.78)
+                    cover_compositor.composite_all_variants(
                         book_number=book,
                         input_dir=runtime.input_dir,
                         generated_dir=generated_root,
                         output_dir=composited_root,
+                        regions=regions,
                         catalog_path=runtime.book_catalog_path,
                     )
-                    used_pdf_mode = True
-                except Exception as pdf_exc:
-                    logger.warning(
-                        "PDF compositor failed for book %s; falling back to JPG compositor: %s",
-                        book,
-                        pdf_exc,
-                    )
-
-            if not used_pdf_mode:
-                _emit_stage("composite", "Compositing generated variants via JPG fallback...", 0.78)
-                cover_compositor.composite_all_variants(
-                    book_number=book,
-                    input_dir=runtime.input_dir,
-                    generated_dir=generated_root,
-                    output_dir=composited_root,
-                    regions=regions,
-                    catalog_path=runtime.book_catalog_path,
-                )
 
             for row in serialized:
                 if not isinstance(row, dict):
@@ -2994,6 +3040,7 @@ def _execute_generation_payload(
                 row["compositor_mode"] = "pdf" if used_pdf_mode else "jpg_fallback"
             _assert_composite_validation_within_limits(runtime=runtime, book_number=book)
         except Exception as exc:
+            import traceback; traceback.print_exc()  # DEBUG
             if checkpoint:
                 _set_checkpoint_stage(
                     checkpoint,

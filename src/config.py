@@ -37,7 +37,7 @@ PROMPT_LIBRARY_PATH = CONFIG_DIR / os.getenv("PROMPT_LIBRARY_FILE", "prompt_libr
 CATALOGS_PATH = CONFIG_DIR / os.getenv("CATALOGS_FILE", "catalogs.json")
 COVER_TEMPLATES_PATH = CONFIG_DIR / os.getenv("COVER_TEMPLATES_FILE", "cover_templates.json")
 MODEL_PROMPT_OVERRIDES_PATH = CONFIG_DIR / os.getenv("MODEL_PROMPT_OVERRIDES_FILE", "model_prompt_overrides.json")
-DEFAULT_CATALOG_ID = os.getenv("CATALOG_ID", "classics").strip() or "classics"
+DEFAULT_CATALOG_ID = os.getenv("CATALOG_ID", "biblical").strip() or "biblical"
 
 # Provider defaults
 AI_PROVIDER = os.getenv("AI_PROVIDER", "openrouter").strip().lower()
