@@ -56,4 +56,4 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
   CMD curl -fsS "http://127.0.0.1:${PORT}/api/health" || exit 1
 
 ENTRYPOINT ["/usr/bin/tini", "--"]
-CMD ["sh", "-c", "exec python3 scripts/quality_review.py --serve --host ${HOST:-0.0.0.0} --port ${PORT:-8001} --output-dir \"Output Covers\""]
+CMD ["sh", "-c", "rm -rf data/iterate_data_*.json data/review_data_*.json 2>/dev/null; exec python3 scripts/quality_review.py --serve --host ${HOST:-0.0.0.0} --port ${PORT:-8001} --output-dir \"Output Covers\""]
