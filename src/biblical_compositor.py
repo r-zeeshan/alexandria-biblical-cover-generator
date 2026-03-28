@@ -71,8 +71,33 @@ def compose_biblical_cover(
     return img
 
 
+def _strip_dark_borders(img: Image.Image, threshold: int = 30) -> Image.Image:
+    """Crop away dark borders so the art fills the medallion."""
+    import numpy as np
+    arr = np.array(img.convert("RGB"))
+    brightness = arr.mean(axis=2)
+    # Find rows/cols where average brightness exceeds threshold
+    row_mask = brightness.mean(axis=1) > threshold
+    col_mask = brightness.mean(axis=0) > threshold
+    if not row_mask.any() or not col_mask.any():
+        return img
+    rows = np.where(row_mask)[0]
+    cols = np.where(col_mask)[0]
+    cropped = img.crop((int(cols[0]), int(rows[0]), int(cols[-1] + 1), int(rows[-1] + 1)))
+    # Make square (center crop the longer dimension)
+    w, h = cropped.size
+    if w != h:
+        side = min(w, h)
+        left = (w - side) // 2
+        top = (h - side) // 2
+        cropped = cropped.crop((left, top, left + side, top + side))
+    return cropped
+
+
 def _place_art_in_medallion(cover: Image.Image, art: Image.Image) -> Image.Image:
     """Place circular-cropped art into the medallion opening."""
+    # Strip dark borders so art fills the circle
+    art = _strip_dark_borders(art)
     # Resize art to fit the medallion diameter
     diameter = ART_RADIUS * 2
     art_resized = art.convert("RGBA").resize((diameter, diameter), Image.LANCZOS)
