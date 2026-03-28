@@ -9,9 +9,15 @@ import json
 import logging
 from pathlib import Path
 
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageFilter
 
 from src.text_renderer import render_text_on_template
+from src.cover_compositor import (
+    _strip_border,
+    _smart_square_crop,
+    _color_match_illustration,
+    Region,
+)
 
 log = logging.getLogger(__name__)
 
@@ -71,47 +77,43 @@ def compose_biblical_cover(
     return img
 
 
-def _strip_dark_borders(img: Image.Image, threshold: int = 30) -> Image.Image:
-    """Crop away dark borders so the art fills the medallion."""
-    import numpy as np
-    arr = np.array(img.convert("RGB"))
-    brightness = arr.mean(axis=2)
-    # Find rows/cols where average brightness exceeds threshold
-    row_mask = brightness.mean(axis=1) > threshold
-    col_mask = brightness.mean(axis=0) > threshold
-    if not row_mask.any() or not col_mask.any():
-        return img
-    rows = np.where(row_mask)[0]
-    cols = np.where(col_mask)[0]
-    cropped = img.crop((int(cols[0]), int(rows[0]), int(cols[-1] + 1), int(rows[-1] + 1)))
-    # Make square (center crop the longer dimension)
-    w, h = cropped.size
-    if w != h:
-        side = min(w, h)
-        left = (w - side) // 2
-        top = (h - side) // 2
-        cropped = cropped.crop((left, top, left + side, top + side))
-    return cropped
-
-
 def _place_art_in_medallion(cover: Image.Image, art: Image.Image) -> Image.Image:
-    """Place circular-cropped art into the medallion opening."""
-    # Strip dark borders so art fills the circle
-    art = _strip_dark_borders(art)
-    # Resize art to fit the medallion diameter
+    """Place circular-cropped art into the medallion opening.
+
+    Uses the same preprocessing as Tim's classics compositor:
+    1. Strip AI-generated border artifacts (adaptive edge detection)
+    2. Focus-aware smart square crop (subject detection)
+    3. Color-match art temperature to cover context (navy warmth)
+    4. Circular mask with feathered edge
+    """
+    # 1. Strip border artifacts (same as classics compositor)
+    art = _strip_border(art, border_percent=0.05)
+
+    # 2. Smart square crop — focus-aware subject detection
+    art = _smart_square_crop(art)
+
+    # 3. Color-match to cover context
+    region = Region(
+        center_x=MEDALLION_CX,
+        center_y=MEDALLION_CY,
+        radius=ART_RADIUS,
+        frame_bbox=(MEDALLION_CX - ART_RADIUS, MEDALLION_CY - ART_RADIUS,
+                    MEDALLION_CX + ART_RADIUS, MEDALLION_CY + ART_RADIUS),
+        region_type="circle",
+    )
+    art = _color_match_illustration(cover, art, region)
+
+    # 4. Resize to medallion diameter
     diameter = ART_RADIUS * 2
     art_resized = art.convert("RGBA").resize((diameter, diameter), Image.LANCZOS)
 
-    # Create circular mask
+    # 5. Circular mask with feathered edge
     mask = Image.new("L", (diameter, diameter), 0)
     draw = ImageDraw.Draw(mask)
     draw.ellipse((0, 0, diameter - 1, diameter - 1), fill=255)
-
-    # Apply feathered edge (soften the last 8 pixels)
-    from PIL import ImageFilter
     mask = mask.filter(ImageFilter.GaussianBlur(radius=4))
 
-    # Paste art at medallion position
+    # 6. Paste at medallion position
     x = MEDALLION_CX - ART_RADIUS
     y = MEDALLION_CY - ART_RADIUS
     cover.paste(art_resized, (x, y), mask)
