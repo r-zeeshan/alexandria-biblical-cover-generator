@@ -510,7 +510,7 @@ window.Compositor = {
 
   async loadRegions() {
     try {
-      const resp = await fetch('/api/cover-regions?catalog=classics', { cache: 'no-store' });
+      const resp = await fetch('/api/cover-regions?catalog=biblical', { cache: 'no-store' });
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
       const data = await resp.json();
       _regionRegistry = {};

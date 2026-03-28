@@ -55,7 +55,7 @@ window.Drive = {
       const books = Array.isArray(data.books) ? data.books : [];
       return DB.replaceBooks(books.map((book) => ({ id: book.number, number: book.number, ...book })));
     } catch {
-      return DB.loadBooks('classics');
+      return DB.loadBooks('biblical');
     }
   },
 
@@ -65,7 +65,7 @@ window.Drive = {
     } catch {
       // ignore
     }
-    return DB.loadBooks('classics');
+    return DB.loadBooks('biblical');
   },
 
   async syncCatalog(onProgress, options = {}) {
@@ -75,7 +75,7 @@ window.Drive = {
       progressCb = null;
       opts = onProgress;
     }
-    const catalog = String(opts.catalog || 'classics').trim() || 'classics';
+    const catalog = String(opts.catalog || 'biblical').trim() || 'biblical';
     const rawLimit = Number(opts.limit || 20000);
     const limit = Number.isFinite(rawLimit) ? Math.max(1, Math.min(50000, Math.round(rawLimit))) : 20000;
     const force = opts.force === undefined ? true : Boolean(opts.force);
@@ -137,7 +137,7 @@ window.Drive = {
 
   async downloadCoverForBook(bookNumber, source = 'catalog') {
     const resp = await this._fetchWithRetry(
-      `/api/books/${encodeURIComponent(bookNumber)}/cover-preview?source=${encodeURIComponent(source)}&catalog=classics`,
+      `/api/books/${encodeURIComponent(bookNumber)}/cover-preview?source=${encodeURIComponent(source)}&catalog=biblical`,
       {},
       3,
     );

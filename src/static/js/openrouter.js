@@ -140,7 +140,7 @@ window.OpenRouter = {
     };
 
     const payload = {
-      catalog: options.catalog || 'classics',
+      catalog: options.catalog || 'biblical',
       book: Number(options.book_id || options.bookNumber || options.book || 0),
       models: [model],
       variants: requestedVariants,

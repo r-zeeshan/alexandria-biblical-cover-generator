@@ -140,7 +140,7 @@
 
   <script>
     const state = {
-      catalog: 'classics',
+      catalog: 'biblical',
       catalogs: [],
       modelRows: [],
       recommendation: null,
@@ -186,7 +186,7 @@
     function bindEvents() {
       q('reloadBtn').addEventListener('click', () => reload());
       q('catalogSelect').addEventListener('change', (event) => {
-        state.catalog = String(event.target.value || 'classics');
+        state.catalog = String(event.target.value || 'biblical');
         const url = new URL(window.location.href);
         url.searchParams.set('catalog', state.catalog);
         window.history.replaceState({}, '', url.toString());

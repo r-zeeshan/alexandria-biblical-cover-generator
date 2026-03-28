@@ -403,7 +403,7 @@ window.JobQueue = {
             this.GENERATION_TIMEOUT,
             {
               book_id: job.book_id,
-              catalog: 'classics',
+              catalog: 'biblical',
               prompt_source: String(job.backend_prompt_source || job.prompt_source || 'custom').trim().toLowerCase() || 'custom',
               compose_prompt: job.compose_prompt !== false,
               preserve_prompt_text: job.preserve_prompt_text === true,
@@ -958,7 +958,7 @@ function initSidebar() {
 async function init() {
   await DB.openDB();
   await DB.initDefaults();
-  await DB.loadPrompts('classics');
+  await DB.loadPrompts('biblical');
   await OpenRouter.init();
   if (window.Compositor?.loadRegions) {
     await window.Compositor.loadRegions();

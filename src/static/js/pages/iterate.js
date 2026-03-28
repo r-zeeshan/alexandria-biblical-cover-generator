@@ -846,7 +846,7 @@ async function _extractVariantArchiveAssets({ bookId, variant, model }) {
   const modelId = String(model || '').trim();
   if (book <= 0 || variantNumber <= 0 || !modelId) return {};
   try {
-    const zipHref = `/api/variant-download?catalog=classics&book=${encodeURIComponent(book)}&variant=${encodeURIComponent(variantNumber)}&model=${encodeURIComponent(modelId)}`;
+    const zipHref = `/api/variant-download?catalog=biblical&book=${encodeURIComponent(book)}&variant=${encodeURIComponent(variantNumber)}&model=${encodeURIComponent(modelId)}`;
     const zipBlob = await fetchDownloadBlob(zipHref);
     if (!zipBlob) return {};
     const JSZip = await ensureJSZip();
@@ -2107,7 +2107,7 @@ function buildModelSelectOptions(models) {
 window.Pages.iterate = {
   async render() {
     const content = document.getElementById('content');
-    const catalogId = 'classics';
+    const catalogId = 'biblical';
     let books = DB.dbGetAll('books');
     if (!books.length) books = await DB.loadBooks(catalogId);
     if (!books.length) {
@@ -3208,7 +3208,7 @@ window.Pages.iterate = {
       e.stopPropagation();
       const book = Number(btn.dataset.viewQaBook || 0);
       if (!Number.isFinite(book) || book <= 0) return;
-      window.open(`/api/visual-qa/image/${book}?catalog=classics`, '_blank', 'noopener,noreferrer');
+      window.open(`/api/visual-qa/image/${book}?catalog=biblical`, '_blank', 'noopener,noreferrer');
     }));
     grid.querySelectorAll('[data-save-result]').forEach((btn) => btn.addEventListener('click', async (e) => {
       e.stopPropagation();
@@ -3274,7 +3274,7 @@ window.Pages.iterate = {
     const rawHref = pickFullResolutionSource(job, 'download-raw', true);
     const pdfHref = resolveJobArtifactHref(job, ['composite_pdf_url', 'pdf_url', 'composited_pdf_path', 'pdf_path']);
     const aiHref = resolveJobArtifactHref(job, ['composite_ai_url', 'ai_url', 'composited_ai_path', 'ai_path']);
-    const sourceHref = `/api/source-download?catalog=classics&book=${encodeURIComponent(Number(job.book_id || 0))}&variant=${encodeURIComponent(Number(job.variant || 0))}&model=${encodeURIComponent(String(job.model || ''))}`;
+    const sourceHref = `/api/source-download?catalog=biblical&book=${encodeURIComponent(Number(job.book_id || 0))}&variant=${encodeURIComponent(Number(job.variant || 0))}&model=${encodeURIComponent(String(job.model || ''))}`;
 
     try {
       const JSZip = await ensureJSZip();
@@ -3562,7 +3562,7 @@ window.Pages.iterate = {
     }
 
     try {
-      const response = await fetch('/api/save-prompt?catalog=classics', {
+      const response = await fetch('/api/save-prompt?catalog=biblical', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -3577,7 +3577,7 @@ window.Pages.iterate = {
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`);
       }
-      await DB.loadPrompts('classics');
+      await DB.loadPrompts('biblical');
       this.refreshPromptDropdown();
       Toast.success('Prompt saved');
     } catch (err) {

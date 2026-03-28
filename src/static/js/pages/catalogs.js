@@ -6,7 +6,7 @@ let _searchTimeout = null;
 window.Pages.catalogs = {
   async render() {
     let books = DB.dbGetAll('books');
-    if (!books.length) books = await DB.loadBooks('classics');
+    if (!books.length) books = await DB.loadBooks('biblical');
 
     const content = document.getElementById('content');
     content.innerHTML = `

@@ -118,7 +118,7 @@ window.Pages.batch = {
   async render() {
     let books = DB.dbGetAll('books');
     if (!books.length || books.some((book) => !DB.bookHasPromptEnrichment(book))) {
-      books = await DB.loadBooks('classics');
+      books = await DB.loadBooks('biblical');
     }
     const modelOptions = OpenRouter.MODELS.map((m) => `<option value="${m.id}">${m.label}</option>`).join('');
 

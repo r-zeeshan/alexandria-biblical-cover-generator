@@ -83,7 +83,7 @@ window.Pages.dashboard = {
 
     let recentFromApi = [];
     try {
-      const response = await fetch('/api/dashboard-data?catalog=classics', { cache: 'no-store' });
+      const response = await fetch('/api/dashboard-data?catalog=biblical', { cache: 'no-store' });
       if (response.ok) {
         const payload = await response.json();
         recentFromApi = Array.isArray(payload.recent_results) ? payload.recent_results : [];

@@ -208,14 +208,14 @@ window.DB = {
     _persistTimer = setTimeout(_persistSettings, 300);
   },
 
-  async loadBooks(catalog = 'classics') {
+  async loadBooks(catalog = 'biblical') {
     const resp = await fetch(`/api/iterate-data?catalog=${encodeURIComponent(catalog)}&view=books&limit=9999&offset=0`, { cache: 'no-store' });
     const data = await resp.json();
     const books = Array.isArray(data.books) ? data.books : [];
     return this.replaceBooks(books);
   },
 
-  async loadPrompts(catalog = 'classics') {
+  async loadPrompts(catalog = 'biblical') {
     try {
       const resp = await fetch(`/api/prompts?catalog=${encodeURIComponent(catalog)}`, { cache: 'no-store' });
       const data = await resp.json();

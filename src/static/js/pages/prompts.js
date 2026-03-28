@@ -4,7 +4,7 @@ function esc(str) {
   return String(str || '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 }
 
-const PROMPT_CATALOG = 'classics';
+const PROMPT_CATALOG = 'biblical';
 const PROMPT_FILTERS = [
   { id: 'all', label: 'All' },
   { id: 'alexandria', label: 'Alexandria' },

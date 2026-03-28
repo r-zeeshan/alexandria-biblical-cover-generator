@@ -119,7 +119,7 @@ async function loadVisualQa({ force = false } = {}) {
   const status = document.getElementById('visualQaStatus');
   if (status) status.textContent = force ? 'Generating comparison grids...' : 'Loading comparison grids...';
   try {
-    const params = new URLSearchParams({ catalog: 'classics' });
+    const params = new URLSearchParams({ catalog: 'biblical' });
     if (force) params.set('force', '1');
     if (route.book > 0) params.set('book_number', String(route.book));
     const response = await fetch(`/api/visual-qa?${params.toString()}`, { cache: 'no-store' });
@@ -159,7 +159,7 @@ async function generateVisualQa() {
   if (button) button.disabled = true;
   if (status) status.textContent = 'Generating comparison grids...';
   try {
-    const response = await fetch('/api/visual-qa/generate?catalog=classics', {
+    const response = await fetch('/api/visual-qa/generate?catalog=biblical', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({}),

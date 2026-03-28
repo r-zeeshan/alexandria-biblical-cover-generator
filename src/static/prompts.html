@@ -119,7 +119,7 @@
 
   <script>
     const state = {
-      catalog: 'classics',
+      catalog: 'biblical',
       catalogs: [],
       prompts: [],
       selectedPromptId: '',
@@ -158,7 +158,7 @@
 
     function bindEvents() {
       q('catalogSelect').addEventListener('change', (event) => {
-        state.catalog = String(event.target.value || 'classics');
+        state.catalog = String(event.target.value || 'biblical');
         const url = new URL(window.location.href);
         url.searchParams.set('catalog', state.catalog);
         window.history.replaceState({}, '', url.toString());

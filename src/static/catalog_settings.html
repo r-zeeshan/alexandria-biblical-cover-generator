@@ -120,7 +120,7 @@
   <script>
     const state = {
       catalogs: [],
-      activeCatalog: 'classics',
+      activeCatalog: 'biblical',
       selectedCatalogId: '',
       catalogSettings: {},
     };
@@ -186,7 +186,7 @@
       try {
         const payload = await fetchJson('/api/catalogs');
         state.catalogs = Array.isArray(payload.catalogs) ? payload.catalogs : [];
-        state.activeCatalog = String(payload.active_catalog || state.activeCatalog || 'classics');
+        state.activeCatalog = String(payload.active_catalog || state.activeCatalog || 'biblical');
         if (!state.selectedCatalogId) state.selectedCatalogId = state.activeCatalog;
         renderCatalogList();
         await loadCatalogDetails(state.selectedCatalogId);
