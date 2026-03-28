@@ -2,19 +2,12 @@
 Output Covers/
 tmp/
 
-# Template editor (local tool, not for repo)
-tools/template_editor.html
-
-# Docs (private planning & knowledge)
+# Tools (local development aids, not for repo)
+tools/
 docs/
-*.sqlite3
-*.db
-catalog_cache.json
 
-# Input covers (large, stored in Google Drive — not in repo)
+# Input covers (large, stored in Google Drive)
 Input Covers/
-
-# Sample covers (reference only, stored locally)
 Sample Output style covers/
 
 # Environment / secrets
@@ -38,28 +31,28 @@ Thumbs.db
 .idea/
 .vscode/
 
-# Runtime data (generated at runtime, not source)
+# Runtime data (generated at runtime)
 data/
-data/generation_history.json
-data/generation_failures.json
 tmp/
 logs/
 output/
 qa_output/
-Output Covers/raw_art/
-Output Covers/saved_composites/
+exports/
+reports/
+*.sqlite3
+*.db
+catalog_cache.json
+
+# Generated prompts (regenerated at startup)
+config/book_prompts.json
+config/prompt_library.json
 config/catalog_cache/
 config/*.generated.*
+
+# Codex / dev status
 Codex Prompts/
-.playwright-cli/
-exports/
-
-# Codex development status (ephemeral)
 .codex-status/
-
-# Generated reports
-reports/
-qa_output/**/*.lock
+.playwright-cli/
 
 # Editor swap files
 ~$*
@@ -67,14 +60,16 @@ qa_output/**/*.lock
 # Large binary files
 *.pdf
 *.ai
-!config/frame_overlays/*.png
-!config/templates/*.png
-!config/frame_mask.png
-!config/debug_overlays/*.png
-!config/img/*.png
+
+# Config assets that SHOULD be tracked
+!config/cover_template_full.png
+!config/frame_overlay_template.png
+!config/ornaments/*.png
+!config/fonts/*.ttf
 
 # Node
 node_modules/
 
 # Lock files
 config/.*.lock
+qa_output/**/*.lock
