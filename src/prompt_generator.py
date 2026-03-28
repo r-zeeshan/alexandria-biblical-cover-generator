@@ -523,6 +523,29 @@ def _motif_for_book(book: dict[str, Any]) -> BookMotif:
     author = _normalize(book.get("author", ""))
     title_author = f"{title} {author}"
 
+    # --- Enrichment-aware motif extraction ---
+    enrichment = book.get("enrichment", {})
+    iconic_scenes = enrichment.get("iconic_scenes", [])
+    if iconic_scenes:
+        visual_motifs = enrichment.get("visual_motifs", [])
+        key_characters = enrichment.get("key_characters", [])
+        setting = enrichment.get("setting_primary", "")
+        tone = enrichment.get("emotional_tone", "")
+        art_style = enrichment.get("art_period_match", "period-inspired illustration")
+
+        char_str = ", ".join(key_characters[:3]) if key_characters else "central figure"
+        motif_str = ", ".join(visual_motifs[:3]) if visual_motifs else ""
+
+        return BookMotif(
+            iconic_scene=iconic_scenes[0],
+            character_portrait=f"{char_str} in {setting}" if setting else f"{char_str} in a dramatic scene",
+            setting_landscape=setting or iconic_scenes[1] if len(iconic_scenes) > 1 else setting,
+            dramatic_moment=iconic_scenes[min(2, len(iconic_scenes) - 1)],
+            symbolic_theme=f"{tone}, {motif_str}" if motif_str else tone or "symbolic allegorical composition",
+            style_specific_prefix=art_style.split("/")[0].strip() if "/" in art_style else art_style,
+        )
+    # --- End enrichment block ---
+
     if "moby dick" in title_author or "whale" in title_author:
         core = "Captain Ahab, white whale, stormy sea, splintering whaling ship, violent spray"
         return BookMotif(
@@ -1563,13 +1586,19 @@ def generate_prompts_for_book(book_entry: dict, templates: dict) -> list[BookPro
     style_groups = templates["style_groups"]
     negative_prompt = _ensure_negative_prompt_terms(str(templates["negative_prompt"]))
 
-    variant_plan = [
-        (1, "1_iconic_scene_sketch", "scene_description", _limit_words(motif.iconic_scene)),
-        (2, "2_character_portrait_sketch", "character_description", _limit_words(motif.character_portrait)),
-        (3, "3_setting_landscape_sketch", "setting_description", _limit_words(motif.setting_landscape)),
-        (4, "4_dramatic_oil_painting", "moment_description", _limit_words(motif.dramatic_moment)),
-        (5, "5_symbolic_alternative", "theme_description", _limit_words(motif.symbolic_theme)),
+    # Build variant plan dynamically from template keys
+    variant_keys = sorted(variants_cfg.keys())
+    motif_fields = [
+        ("scene_description", motif.iconic_scene),
+        ("character_description", motif.character_portrait),
+        ("setting_description", motif.setting_landscape),
+        ("moment_description", motif.dramatic_moment),
+        ("theme_description", motif.symbolic_theme),
     ]
+    variant_plan = []
+    for i, vk in enumerate(variant_keys[:5]):
+        desc_slot, desc_val = motif_fields[i] if i < len(motif_fields) else ("scene_description", motif.iconic_scene)
+        variant_plan.append((i + 1, vk, desc_slot, _limit_words(desc_val)))
 
     prompts: list[BookPrompt] = []
     for variant_id, variant_key, description_slot, description_text in variant_plan:
@@ -1583,6 +1612,8 @@ def generate_prompts_for_book(book_entry: dict, templates: dict) -> list[BookPro
             "character_description": description_text,
             "setting_description": description_text,
             "moment_description": description_text,
+            "dramatic_description": description_text,
+            "symbolic_description": description_text,
             "theme_description": description_text,
             "style_anchors": style_anchors,
             "style_specific_prefix": motif.style_specific_prefix,
