@@ -43,9 +43,7 @@ reports/
 *.db
 catalog_cache.json
 
-# Generated prompts (regenerated at startup)
-config/book_prompts.json
-config/prompt_library.json
+# Runtime caches
 config/catalog_cache/
 config/*.generated.*
 
