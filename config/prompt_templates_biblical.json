@@ -1,0 +1,59 @@
+{
+  "style_groups": {
+    "religious_painting": {
+      "description": "Renaissance and Baroque religious painting styles",
+      "style_anchors": "rich oil painting, Renaissance religious illustration, dramatic chiaroscuro lighting, sacred iconography, luminous golden tones, devotional composition",
+      "applies_to": ["1_iconic_scene", "2_character_portrait", "3_setting_landscape"]
+    },
+    "dramatic_oil": {
+      "description": "Dramatic oil painting with deep emotional resonance",
+      "style_anchors": "dramatic oil painting, Baroque intensity, Caravaggio-inspired lighting, rich earth tones, deep shadows, golden highlights, emotional gravitas",
+      "applies_to": ["4_dramatic_moment"]
+    },
+    "mystical_symbolic": {
+      "description": "Symbolic and mystical artistic styles",
+      "style_anchors": "Pre-Raphaelite symbolic painting, Byzantine gold-leaf influence, illuminated manuscript detail, jewel-toned palette, sacred geometry, visionary composition",
+      "applies_to": ["5_symbolic_vision"]
+    }
+  },
+  "negative_prompt": "text, letters, words, numbers, watermark, signature, logo, label, inscription, calligraphy, typography, border, frame, decorative ring, wreath, filigree, ornamental flourish, medallion edge, cartouche, scrollwork, modern clothing, contemporary elements, digital art, CGI, 3D render, vector art, anime, cartoon, photorealistic photograph, stock photo, neon colors, blurry, white background, plain background",
+  "variants": {
+    "1_iconic_scene": {
+      "name": "Iconic Scene",
+      "style_group": "religious_painting",
+      "description": "The most visually powerful scene from the text",
+      "template": "{scene_description}. Painted as a rich {style_anchors}. Full-bleed crop-safe composition, vivid high-saturation painterly color palette, no empty space."
+    },
+    "2_character_portrait": {
+      "name": "Character Portrait",
+      "style_group": "religious_painting",
+      "description": "Central figure or character in dramatic setting",
+      "template": "{character_description}. {style_anchors}. Full-bleed crop-safe composition, vivid high-saturation painterly color palette, no empty space, no plain backgrounds."
+    },
+    "3_setting_landscape": {
+      "name": "Sacred Setting",
+      "style_group": "religious_painting",
+      "description": "Key location or environment from the narrative",
+      "template": "{setting_description}. Rendered as {style_anchors}. Full-bleed crop-safe composition, vivid high-saturation painterly color palette, rich contrast, no empty space."
+    },
+    "4_dramatic_moment": {
+      "name": "Dramatic Moment",
+      "style_group": "dramatic_oil",
+      "description": "Pivotal emotional or action moment",
+      "template": "{dramatic_description}. {style_anchors}. Full-bleed crop-safe composition, vivid high-saturation painterly color palette, no empty space."
+    },
+    "5_symbolic_vision": {
+      "name": "Symbolic Vision",
+      "style_group": "mystical_symbolic",
+      "description": "Allegorical or symbolic representation of core themes",
+      "template": "{symbolic_description}. {style_anchors}. Full-bleed crop-safe composition, vivid high-saturation painterly color palette, no empty space, no plain backgrounds."
+    }
+  },
+  "generation_params": {
+    "width": 1024,
+    "height": 1024,
+    "guidance_scale": 7.5,
+    "num_inference_steps": 28,
+    "output_format": "png"
+  }
+}
