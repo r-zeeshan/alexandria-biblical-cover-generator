@@ -46,17 +46,41 @@ BACK_TEXT_W = SPINE_LEFT - BACK_MARGIN * 2
 MEDALLION_TOP = 830
 MEDALLION_BOTTOM = 830 + 1353
 
-# Colors
-GOLD = (212, 175, 55)
-LIGHT_GOLD = (218, 190, 100)
-CREAM = (230, 215, 170)
+# Colors (matched to Tim's original Illustrator design: warm antique gold)
+GOLD = (197, 165, 90)         # #c5a55a — titles, author, spine
+LIGHT_GOLD = (205, 180, 110)  # warm gold — back cover quote, attribution
+CREAM = (246, 229, 184)       # #f6e5b8 — subtitle, back body text
 
-# Fonts
+# Fonts (matched to Tim's original covers extracted from PDF)
+# Title: Cinzel (free Trajan Pro 3 alternative) — classic display serif
+# Author/Spine: Garamond Bold → EB Garamond
+# Body/Quote: Georgia (system serif)
 FONTS_DIR = Path(__file__).resolve().parent.parent / "config" / "fonts"
 
+def _font_title(size):
+    """Cinzel for titles — matches Trajan Pro 3 Bold from originals."""
+    return ImageFont.truetype(str(FONTS_DIR / "Cinzel.ttf"), size)
+
 def _font(size, italic=False):
-    name = "EBGaramond-Italic.ttf" if italic else "EBGaramond.ttf"
-    return ImageFont.truetype(str(FONTS_DIR / name), size)
+    """Georgia for body text — matches originals. Falls back to EB Garamond."""
+    if italic:
+        for name in ("Georgiai.ttf", "EBGaramond-Italic.ttf"):
+            path = FONTS_DIR / name
+            if path.exists():
+                return ImageFont.truetype(str(path), size)
+    for name in ("Georgia.ttf", "EBGaramond.ttf"):
+        path = FONTS_DIR / name
+        if path.exists():
+            return ImageFont.truetype(str(path), size)
+    return ImageFont.truetype(str(FONTS_DIR / "EBGaramond.ttf"), size)
+
+def _font_bold(size):
+    """Bold Garamond/Georgia for author — matches originals."""
+    for name in ("Georgiab.ttf", "EBGaramond.ttf"):
+        path = FONTS_DIR / name
+        if path.exists():
+            return ImageFont.truetype(str(path), size)
+    return ImageFont.truetype(str(FONTS_DIR / "EBGaramond.ttf"), size)
 
 # ---------------------------------------------------------------------------
 # Text utilities
@@ -74,13 +98,14 @@ def _wrap(text, font, max_w):
     if cur: lines.append(cur)
     return lines
 
-def _fit(text, max_w, max_h, start_size, min_size=20, italic=False):
+def _fit(text, max_w, max_h, start_size, min_size=20, italic=False, font_func=None):
+    _fn = font_func or (lambda sz: _font(sz, italic))
     for sz in range(start_size, min_size - 1, -2):
-        f = _font(sz, italic)
+        f = _fn(sz)
         lines = _wrap(text, f, max_w)
         if len(lines) * int(sz * 1.35) <= max_h:
             return f, lines
-    f = _font(min_size, italic)
+    f = _fn(min_size)
     return f, _wrap(text, f, max_w)
 
 def _draw_centered(draw, lines, font, cx, y, color, spacing=1.35):
@@ -171,11 +196,11 @@ def render_text_on_template(template, title, subtitle="", author="", back_descri
 
     title_w = FRONT_W - TITLE_MARGIN * 2
 
-    # --- Front title ---
-    font_t, lines_t = _fit(title.upper(), title_w, MEDALLION_TOP - TITLE_Y - 100, TITLE_SIZE, 50)
+    # --- Front title (Cinzel — matches Trajan Pro 3 from originals) ---
+    font_t, lines_t = _fit(title.upper(), title_w, MEDALLION_TOP - TITLE_Y - 100, TITLE_SIZE, 50, font_func=_font_title)
     y = _draw_centered(draw, lines_t, font_t, FRONT_CX, TITLE_Y, GOLD, 1.15)
 
-    # --- Front subtitle ---
+    # --- Front subtitle (Georgia Italic — matches originals) ---
     if subtitle:
         sub_y = y + SUB_GAP
         avail = MEDALLION_TOP - sub_y - 20
@@ -183,11 +208,10 @@ def render_text_on_template(template, title, subtitle="", author="", back_descri
             font_s, lines_s = _fit(subtitle, title_w, avail, SUB_SIZE, 24, italic=True)
             _draw_centered(draw, lines_s, font_s, FRONT_CX, sub_y, CREAM, 1.3)
 
-    # --- Front author ---
-    # Author zone: between bottom corners (corners are 540px wide, start 0/FRONT_W-540 from front edge)
-    author_w = FRONT_W - 540 - 80  # gap between corners with padding
+    # --- Front author (Georgia Bold — matches Garamond Bold from originals) ---
+    author_w = FRONT_W - 540 - 80
     author_max_h = H - AUTHOR_Y - 200
-    font_a, lines_a = _fit(author.upper(), author_w, author_max_h, AUTHOR_MAX_SIZE, 24)
+    font_a, lines_a = _fit(author.upper(), author_w, author_max_h, AUTHOR_MAX_SIZE, 24, font_func=_font_bold)
     _draw_centered(draw, lines_a, font_a, FRONT_CX, AUTHOR_Y, GOLD, 1.25)
 
     # --- Spine ---
