@@ -51,12 +51,19 @@ def compose_biblical_cover(
     """
     Compose a complete biblical cover from AI art and book metadata.
 
-    Uses the same layering approach as Tim's classics compositor:
-    1. Start with template (navy + ornaments)
-    2. Place art layer at ART_CLIP_RADIUS (600px) — LARGER than frame hole
-    3. Place frame overlay on top — frame ring covers art edge at FRAME_HOLE_RADIUS (540px)
-    4. Render text on top
+    Tries SVG compositor first (identical to Tim's originals with gradient ornaments).
+    Falls back to PIL compositor if cairosvg not available (Windows dev).
     """
+    # Try SVG-based compositor first (produces identical output to Tim's classics)
+    try:
+        from src.svg_compositor import compose_cover_svg
+        result = compose_cover_svg(ai_art, title, subtitle, author, back_description)
+        if result is not None:
+            return result
+    except Exception as e:
+        log.debug("SVG compositor unavailable, using PIL fallback: %s", e)
+
+    # PIL fallback
     if template is None:
         template = Image.open(TEMPLATE_PATH).convert("RGB")
     img = template.copy()
