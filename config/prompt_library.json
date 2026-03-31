@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "updated_at": "2026-03-31T11:48:42.260597+00:00",
+  "updated_at": "2026-03-31T12:05:30.252426+00:00",
   "style_anchors": [
     {
       "name": "allegorical_symbolic",
@@ -65,33 +65,6 @@
   ],
   "prompts": [
     {
-      "id": "alexandria-base-romantic-realism",
-      "name": "BASE 4 — Romantic Realism",
-      "prompt_template": "{SCENE}. Painted as a rich Victorian storybook color plate — opaque gouache with fine ink outlines, dense illustration filling every inch, saturated colors, layered depth from foreground to atmospheric background. Color direction: sunlit gold, rose-crimson, glowing peach, and luminous sky distance with boldly saturated warmth — choose exact hues from this story's setting and era, and keep them vivid, jewel-rich, never muddy or generic. Profound color energy: deep indigo shadow, amber-gold light, mineral teal accents, warm umber structure, and bold high-chroma saturation, never pale, dusty, or muddy. Mood: {MOOD}. Era: {ERA}.",
-      "style_anchors": [],
-      "negative_prompt": "No text, no letters, no words, no numbers, no titles, no author names, no typography, no captions, no labels, no watermarks, no signatures, no inscriptions of any kind. No internal border, no decorative ring, no visible circle outline, no halo ring, no medallion edge, no wreath, no floral frame, no floral surround, no sunburst, no radial rays, no plaque, no banner, no cartouche, no filigree, no scrollwork, no ornamental flourishes, no geometric border pattern, no title-page layout, no isolated oval vignette, no cameo cutout, no floating picture on blank paper, no blank paper margins. No digital art, no CGI, no 3D rendering, no vector art, no clean vector lines, no airbrushed surfaces, no seamless blending, no uniform color fills, no pixel-perfect edges, no smooth digital gradients, no plastic-looking surfaces, no AI-generated sheen, no perfectly smooth skin, no stock photo look, no photorealistic rendering, no neon colours, no cartoonish style, no anime influence, no blurry, no white backgrounds.",
-      "source_book": "builtin",
-      "source_model": "openrouter/google/gemini-3-pro-image-preview",
-      "quality_score": 1.0,
-      "saved_by": "system",
-      "created_at": "2026-03-31T11:45:33.061617+00:00",
-      "notes": "Alexandria base prompt. Best for: Classical Literature, Novels, Drama.",
-      "tags": [
-        "alexandria",
-        "base",
-        "romantic-realism",
-        "literature",
-        "novels",
-        "drama"
-      ],
-      "category": "builtin",
-      "version": 1,
-      "usage_count": 1,
-      "win_count": 0,
-      "last_used_at": "2026-03-31T11:48:03.540367+00:00",
-      "updated_at": "2026-03-31T11:48:03.540379+00:00"
-    },
-    {
       "id": "alexandria-base-gothic-atmosphere",
       "name": "BASE 3 — Gothic Atmosphere",
       "prompt_template": "{SCENE}. Painted as a rich Victorian storybook color plate — opaque gouache with fine ink outlines, dense illustration filling every inch, saturated colors, layered depth from foreground to atmospheric background. Color direction: ink-dark indigo, claret, storm-charcoal, and cold silver highlights with violent expressionist contrast — choose exact hues from this story's setting and era, and keep them vivid, jewel-rich, never muddy or generic. Profound color energy: deep indigo shadow, amber-gold light, mineral teal accents, warm umber structure, and bold high-chroma saturation, never pale, dusty, or muddy. Mood: {MOOD}. Era: {ERA}.",
@@ -113,10 +86,10 @@
       ],
       "category": "builtin",
       "version": 1,
-      "usage_count": 1,
+      "usage_count": 4,
       "win_count": 0,
-      "last_used_at": "2026-03-31T11:48:13.487332+00:00",
-      "updated_at": "2026-03-31T11:48:13.487343+00:00"
+      "last_used_at": "2026-03-31T12:05:30.252410+00:00",
+      "updated_at": "2026-03-31T12:05:30.252417+00:00"
     },
     {
       "id": "alexandria-base-classical-devotion",
@@ -140,10 +113,37 @@
       ],
       "category": "builtin",
       "version": 1,
-      "usage_count": 1,
+      "usage_count": 4,
       "win_count": 0,
-      "last_used_at": "2026-03-31T11:48:42.260591+00:00",
-      "updated_at": "2026-03-31T11:48:42.260594+00:00"
+      "last_used_at": "2026-03-31T12:02:59.263557+00:00",
+      "updated_at": "2026-03-31T12:02:59.263573+00:00"
+    },
+    {
+      "id": "alexandria-base-romantic-realism",
+      "name": "BASE 4 — Romantic Realism",
+      "prompt_template": "{SCENE}. Painted as a rich Victorian storybook color plate — opaque gouache with fine ink outlines, dense illustration filling every inch, saturated colors, layered depth from foreground to atmospheric background. Color direction: sunlit gold, rose-crimson, glowing peach, and luminous sky distance with boldly saturated warmth — choose exact hues from this story's setting and era, and keep them vivid, jewel-rich, never muddy or generic. Profound color energy: deep indigo shadow, amber-gold light, mineral teal accents, warm umber structure, and bold high-chroma saturation, never pale, dusty, or muddy. Mood: {MOOD}. Era: {ERA}.",
+      "style_anchors": [],
+      "negative_prompt": "No text, no letters, no words, no numbers, no titles, no author names, no typography, no captions, no labels, no watermarks, no signatures, no inscriptions of any kind. No internal border, no decorative ring, no visible circle outline, no halo ring, no medallion edge, no wreath, no floral frame, no floral surround, no sunburst, no radial rays, no plaque, no banner, no cartouche, no filigree, no scrollwork, no ornamental flourishes, no geometric border pattern, no title-page layout, no isolated oval vignette, no cameo cutout, no floating picture on blank paper, no blank paper margins. No digital art, no CGI, no 3D rendering, no vector art, no clean vector lines, no airbrushed surfaces, no seamless blending, no uniform color fills, no pixel-perfect edges, no smooth digital gradients, no plastic-looking surfaces, no AI-generated sheen, no perfectly smooth skin, no stock photo look, no photorealistic rendering, no neon colours, no cartoonish style, no anime influence, no blurry, no white backgrounds.",
+      "source_book": "builtin",
+      "source_model": "openrouter/google/gemini-3-pro-image-preview",
+      "quality_score": 1.0,
+      "saved_by": "system",
+      "created_at": "2026-03-31T11:45:33.061617+00:00",
+      "notes": "Alexandria base prompt. Best for: Classical Literature, Novels, Drama.",
+      "tags": [
+        "alexandria",
+        "base",
+        "romantic-realism",
+        "literature",
+        "novels",
+        "drama"
+      ],
+      "category": "builtin",
+      "version": 1,
+      "usage_count": 2,
+      "win_count": 0,
+      "last_used_at": "2026-03-31T12:00:53.751739+00:00",
+      "updated_at": "2026-03-31T12:00:53.751751+00:00"
     },
     {
       "id": "alexandria-base-esoteric-mysticism",

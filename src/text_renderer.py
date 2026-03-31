@@ -20,14 +20,14 @@ FRONT_W = W - SPINE_RIGHT  # 1907
 
 # Text layout settings (from text_layout_editor.html)
 TITLE_SIZE = 135
-TITLE_Y = 218
+TITLE_Y = 310           # ~11% down (closer to Tim's 14.8%)
 TITLE_MARGIN = 200
 
 SUB_SIZE = 72
-SUB_GAP = 65
+SUB_GAP = 50
 
 AUTHOR_MAX_SIZE = 80
-AUTHOR_Y = 2291
+AUTHOR_Y = 2350          # ~85% down (closer to Tim's 89%)
 
 SPINE_SIZE = 50
 
@@ -208,11 +208,13 @@ def render_text_on_template(template, title, subtitle="", author="", back_descri
             font_s, lines_s = _fit(subtitle, title_w, avail, SUB_SIZE, 24, italic=True)
             _draw_centered(draw, lines_s, font_s, FRONT_CX, sub_y, CREAM, 1.3)
 
-    # --- Front author (Georgia Bold — matches Garamond Bold from originals) ---
+    # --- Front author (Cinzel — same as title, matches Trajan Pro 3 from originals) ---
+    # Double-render: white shadow behind gold text for depth effect (same as Tim's SVG)
     author_w = FRONT_W - 540 - 80
     author_max_h = H - AUTHOR_Y - 200
-    font_a, lines_a = _fit(author.upper(), author_w, author_max_h, AUTHOR_MAX_SIZE, 24, font_func=_font_bold)
-    _draw_centered(draw, lines_a, font_a, FRONT_CX, AUTHOR_Y, GOLD, 1.25)
+    font_a, lines_a = _fit(author.upper(), author_w, author_max_h, AUTHOR_MAX_SIZE, 24, font_func=_font_title)
+    _draw_centered(draw, lines_a, font_a, FRONT_CX, AUTHOR_Y + 2, (255, 255, 255), 1.25)  # white shadow
+    _draw_centered(draw, lines_a, font_a, FRONT_CX, AUTHOR_Y, GOLD, 1.25)  # gold on top
 
     # --- Spine ---
     # --- Spine (white, bold, uppercase, title only — matches classic covers) ---
