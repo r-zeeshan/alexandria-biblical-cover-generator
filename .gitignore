@@ -72,3 +72,8 @@ node_modules/
 config/.*.lock
 qa_output/**/*.lock
 config/ornaments/_final_*
+config/template.svg
+config/A Room with a View*
+scripts/build_template_v2.py
+src/html_compositor.py
+src/svg_compositor.py

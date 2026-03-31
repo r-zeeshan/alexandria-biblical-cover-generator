@@ -26,18 +26,17 @@ log = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 CONFIG_DIR = Path(__file__).resolve().parent.parent / "config"
-TEMPLATE_PATH = CONFIG_DIR / "cover_template_full.png"
+TEMPLATE_PATH = CONFIG_DIR / "template-latest.png"
 FRAME_OVERLAY_PATH = CONFIG_DIR / "frame_overlay_template.png"
 
-# Medallion geometry — same approach as Tim's classics compositor:
-# Art is placed at ART_CLIP_RADIUS (larger), frame covers the overlap at FRAME_HOLE_RADIUS (smaller).
-# The frame ring hides the art edge, creating a clean transition.
-MEDALLION_CX = 2930
-MEDALLION_CY = 1506
-ART_CLIP_RADIUS = 600    # Art extends to this radius (same as classics)
-FRAME_HOLE_RADIUS = 540  # Frame opening radius (same as classics)
-INNER_FEATHER_PX = 8     # Feather on art clip edge
-NAVY_FILL_RGB = (21, 32, 76)
+# Medallion geometry — from green mask in template-latest.png
+# Green mask: center=(2185,1243), radius=373
+MEDALLION_CX = 2185
+MEDALLION_CY = 1243
+ART_CLIP_RADIUS = 373    # Exact green mask radius
+FRAME_HOLE_RADIUS = 373  # Same — frame is already in template
+INNER_FEATHER_PX = 6
+NAVY_FILL_RGB = (0, 27, 80)  # #001b50 from SVG
 
 
 def compose_biblical_cover(
@@ -54,16 +53,7 @@ def compose_biblical_cover(
     Tries SVG compositor first (identical to Tim's originals with gradient ornaments).
     Falls back to PIL compositor if cairosvg not available (Windows dev).
     """
-    # Try SVG-based compositor first (produces identical output to Tim's classics)
-    try:
-        from src.svg_compositor import compose_cover_svg
-        result = compose_cover_svg(ai_art, title, subtitle, author, back_description)
-        if result is not None:
-            return result
-    except Exception as e:
-        log.debug("SVG compositor unavailable, using PIL fallback: %s", e)
-
-    # PIL fallback
+    # Uses green mask in template for exact art placement
     if template is None:
         template = Image.open(TEMPLATE_PATH).convert("RGB")
     img = template.copy()
@@ -71,48 +61,52 @@ def compose_biblical_cover(
     # Preprocess art (same pipeline as classics)
     ai_art = _strip_border(ai_art, border_percent=0.05)
     ai_art = _smart_square_crop(ai_art)
-    region = Region(
-        center_x=MEDALLION_CX,
-        center_y=MEDALLION_CY,
-        radius=ART_CLIP_RADIUS,
-        frame_bbox=(MEDALLION_CX - ART_CLIP_RADIUS, MEDALLION_CY - ART_CLIP_RADIUS,
-                    MEDALLION_CX + ART_CLIP_RADIUS, MEDALLION_CY + ART_CLIP_RADIUS),
-        region_type="circle",
-    )
-    ai_art = _color_match_illustration(img, ai_art, region)
 
-    # === LAYERING (same as classics compositor) ===
-    cover_w, cover_h = img.size
+    # Place art by replacing green mask pixels
+    img = _replace_green_mask_with_art(img, ai_art)
 
-    # Layer 1: Art placed at ART_CLIP_RADIUS (600px)
-    art_diameter = ART_CLIP_RADIUS * 2
-    art_resized = ai_art.convert("RGBA").resize((art_diameter, art_diameter), Image.LANCZOS)
-
-    # Fill art background with navy (prevents transparency gaps)
-    art_bg = Image.new("RGBA", (art_diameter, art_diameter), (*NAVY_FILL_RGB, 255))
-    art_bg.alpha_composite(art_resized)
-
-    # Place art on full canvas with circular clip mask
-    art_layer = Image.new("RGBA", (cover_w, cover_h), (0, 0, 0, 0))
-    art_layer.paste(art_bg, (MEDALLION_CX - ART_CLIP_RADIUS, MEDALLION_CY - ART_CLIP_RADIUS))
-
-    clip_mask = _build_circle_feather_mask(
-        cover_w, cover_h, MEDALLION_CX, MEDALLION_CY, ART_CLIP_RADIUS, INNER_FEATHER_PX
-    )
-    art_layer.putalpha(clip_mask)
-
-    # Layer 2: Composite art onto template
-    canvas = img.convert("RGBA")
-    result = Image.alpha_composite(canvas, art_layer)
-
-    # Layer 3: Frame overlay on top (covers art edge)
-    result = _apply_frame_overlay_rgba(result)
-
-    # Convert back to RGB and render text
-    img = result.convert("RGB")
+    # Render text on top
     img = render_text_on_template(img, title, subtitle, author, back_description)
 
     return img
+
+
+def _replace_green_mask_with_art(cover: Image.Image, art: Image.Image) -> Image.Image:
+    """Replace green mask pixels in template with AI art, preserving the gold frame on top."""
+    import numpy as np
+
+    arr = np.array(cover)
+    # Detect green pixels: G channel high, R and B low
+    g = arr[:, :, 1].astype(int)
+    r = arr[:, :, 0].astype(int)
+    b_ch = arr[:, :, 2].astype(int)
+    green_mask = (g - r > 80) & (g > 100) & (g - b_ch > 80)
+
+    if not green_mask.any():
+        log.warning("No green mask found in template, falling back to circle placement")
+        # Fallback: circular paste at medallion position
+        diameter = ART_CLIP_RADIUS * 2
+        art_resized = art.convert("RGB").resize((diameter, diameter), Image.LANCZOS)
+        cover.paste(art_resized, (MEDALLION_CX - ART_CLIP_RADIUS, MEDALLION_CY - ART_CLIP_RADIUS))
+        return cover
+
+    # Get bounding box of green area
+    rows = np.where(green_mask.any(axis=1))[0]
+    cols = np.where(green_mask.any(axis=0))[0]
+    top, bot = int(rows[0]), int(rows[-1])
+    left, right = int(cols[0]), int(cols[-1])
+    mask_w = right - left + 1
+    mask_h = bot - top + 1
+
+    # Resize art to fill the green area
+    art_resized = art.convert("RGB").resize((mask_w, mask_h), Image.LANCZOS)
+    art_arr = np.array(art_resized)
+
+    # Replace only green pixels with art pixels
+    green_region = green_mask[top:bot+1, left:right+1]
+    arr[top:bot+1, left:right+1][green_region] = art_arr[green_region]
+
+    return Image.fromarray(arr)
 
 
 def _build_circle_feather_mask(w, h, cx, cy, radius, feather_px):

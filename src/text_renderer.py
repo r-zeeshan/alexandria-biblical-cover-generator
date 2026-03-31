@@ -14,42 +14,37 @@ from PIL import Image, ImageDraw, ImageFont
 # Layout constants (finalized via visual editor)
 # ---------------------------------------------------------------------------
 
-W, H = 3884, 2777
-SPINE_LEFT, SPINE_RIGHT = 1902, 1977
-FRONT_W = W - SPINE_RIGHT  # 1907
+W, H = 2898, 2114
 
-# Text layout settings (from text_layout_editor.html)
-TITLE_SIZE = 135
-TITLE_Y = 310           # ~11% down (closer to Tim's 14.8%)
-TITLE_MARGIN = 200
+# Bounding boxes from visual editor (exact pixel coordinates at 2898x2114)
+# Text will NEVER overflow these boxes.
+BOX = {
+    'title':    {'x': 1691, 'y': 213,  'w': 1005, 'h': 278},
+    'subtitle': {'x': 1622, 'y': 523,  'w': 1174, 'h': 200},
+    'author':   {'x': 1800, 'y': 1753, 'w': 851,  'h': 178},
+    'spine':    {'x': 1379, 'y': 100,  'w': 130,  'h': 1914},
+    'quote':    {'x': 114,  'y': 464,  'w': 1149, 'h': 214},
+    'attrib':   {'x': 116,  'y': 691,  'w': 1149, 'h': 60},
+    'body':     {'x': 120,  'y': 784,  'w': 1152, 'h': 707},
+}
 
-SUB_SIZE = 72
-SUB_GAP = 50
+# Derived from boxes
+SPINE_LEFT = BOX['spine']['x']
+SPINE_RIGHT = BOX['spine']['x'] + BOX['spine']['w']
+FRONT_W = W - SPINE_RIGHT
 
-AUTHOR_MAX_SIZE = 80
-AUTHOR_Y = 2350          # ~85% down (closer to Tim's 89%)
 
-SPINE_SIZE = 50
-
-QUOTE_MAX_SIZE = 80
-QUOTE_Y = 620
-BACK_MARGIN = 120
-
-BODY_MAX_SIZE = 80
-BODY_GAP = 103
-BODY_Y_END = 1820
+    # No more _dynamic_sizes — _fit() handles everything using BOX dimensions
 
 # Derived
-FRONT_CX = SPINE_RIGHT + FRONT_W // 2
-BACK_CX = SPINE_LEFT // 2
-BACK_TEXT_W = SPINE_LEFT - BACK_MARGIN * 2
-MEDALLION_TOP = 830
-MEDALLION_BOTTOM = 830 + 1353
+FRONT_CX = BOX['title']['x'] + BOX['title']['w'] // 2
+BACK_CX = BOX['quote']['x'] + BOX['quote']['w'] // 2
 
-# Colors (extracted from Tim's original Illustrator SVG)
-GOLD = (240, 206, 70)         # #f0ce46 — titles, author (from SVG fill)
-LIGHT_GOLD = (243, 207, 71)   # #f3cf47 — back cover quote, attribution
-CREAM = (243, 207, 71)        # #f3cf47 — subtitle, back body text (same warm gold)
+# Colors (extracted from Tim's SVG)
+TITLE_GOLD = (243, 207, 71)   # #f3cf47 — front title
+AUTHOR_GOLD = (242, 207, 70)  # #f2cf46 — author gold layer
+QUOTE_GOLD = (240, 206, 70)   # #f0ce46 — back quote
+WHITE = (255, 255, 255)       # subtitle, spine, author shadow, back body
 
 # Fonts (matched to Tim's original covers extracted from PDF)
 # Title: Cinzel (free Trajan Pro 3 alternative) — classic display serif
@@ -191,78 +186,80 @@ def _split_quote_body(desc):
 # ---------------------------------------------------------------------------
 
 def render_text_on_template(template, title, subtitle="", author="", back_description=""):
+    """Render all text into bounding boxes. Text auto-fits — never overflows."""
     img = template.copy()
     draw = ImageDraw.Draw(img)
 
-    title_w = FRONT_W - TITLE_MARGIN * 2
+    b = BOX  # shorthand
 
-    # --- Front title (Cinzel — matches Trajan Pro 3 from originals) ---
-    font_t, lines_t = _fit(title.upper(), title_w, MEDALLION_TOP - TITLE_Y - 100, TITLE_SIZE, 50, font_func=_font_title)
-    y = _draw_centered(draw, lines_t, font_t, FRONT_CX, TITLE_Y, GOLD, 1.15)
+    # Max font sizes from Tim's Illustrator (45pt, 21pt, 34pt, 25pt, 15pt, 12pt × 3.26px/pt)
+    TITLE_MAX = 146
+    SUB_MAX = 68
+    AUTH_MAX = 110
+    SPINE_MAX = 81
+    QUOTE_MAX = 48
+    BODY_MAX = 60
 
-    # --- Front subtitle (Georgia Italic — matches originals) ---
+    # --- TITLE: Cinzel bold, gold, centered in box ---
+    title_cx = b['title']['x'] + b['title']['w'] // 2
+    ft, lt = _fit(title.upper(), b['title']['w'], b['title']['h'], TITLE_MAX, 40, font_func=_font_title)
+    _draw_centered(draw, lt, ft, title_cx, b['title']['y'], TITLE_GOLD, 1.15)
+
+    # --- SUBTITLE: Georgia italic, white, centered in box ---
     if subtitle:
-        sub_y = y + SUB_GAP
-        avail = MEDALLION_TOP - sub_y - 20
-        if avail > 30:
-            font_s, lines_s = _fit(subtitle, title_w, avail, SUB_SIZE, 24, italic=True)
-            _draw_centered(draw, lines_s, font_s, FRONT_CX, sub_y, CREAM, 1.3)
+        sub_cx = b['subtitle']['x'] + b['subtitle']['w'] // 2
+        fs, ls = _fit(subtitle, b['subtitle']['w'], b['subtitle']['h'], SUB_MAX, 20, italic=True)
+        _draw_centered(draw, ls, fs, sub_cx, b['subtitle']['y'], WHITE, 1.25)
 
-    # --- Front author (Cinzel — same as title, matches Trajan Pro 3 from originals) ---
-    # Double-render: white shadow behind gold text for depth effect (same as Tim's SVG)
-    author_w = FRONT_W - 540 - 80
-    author_max_h = H - AUTHOR_Y - 200
-    font_a, lines_a = _fit(author.upper(), author_w, author_max_h, AUTHOR_MAX_SIZE, 24, font_func=_font_title)
-    _draw_centered(draw, lines_a, font_a, FRONT_CX, AUTHOR_Y + 2, (255, 255, 255), 1.25)  # white shadow
-    _draw_centered(draw, lines_a, font_a, FRONT_CX, AUTHOR_Y, GOLD, 1.25)  # gold on top
+    # --- AUTHOR: Cinzel bold, white shadow + gold, centered in box ---
+    auth_cx = b['author']['x'] + b['author']['w'] // 2
+    fa, la = _fit(author.upper(), b['author']['w'], b['author']['h'], AUTH_MAX, 24, font_func=_font_title)
+    _draw_centered(draw, la, fa, auth_cx, b['author']['y'] + 2, WHITE, 1.15)
+    _draw_centered(draw, la, fa, auth_cx, b['author']['y'], AUTHOR_GOLD, 1.15)
 
-    # --- Spine ---
-    # --- Spine (white, bold, uppercase, title only — matches classic covers) ---
-    spine_w = SPINE_RIGHT - SPINE_LEFT
+    # --- SPINE: Cinzel bold, white, rotated ---
     spine_text = title.upper()
-    spine_h = H - 240
-    SPINE_WHITE = (255, 255, 255)
+    sw = b['spine']['w']
+    sh = b['spine']['h']
 
-    for sz in range(SPINE_SIZE, 12, -1):
-        sf = _font_bold(sz)
+    for sz in range(SPINE_MAX, 15, -1):
+        sf = _font_title(sz)
         bb = sf.getbbox(spine_text)
-        if bb[3] - bb[1] <= spine_w - 10 and bb[2] - bb[0] <= spine_h:
+        if bb[3] - bb[1] <= sw - 6 and bb[2] - bb[0] <= sh:
             break
 
-    tmp = Image.new("RGBA", (spine_h, spine_w), (0, 0, 0, 0))
+    tmp = Image.new("RGBA", (sh, sw), (0, 0, 0, 0))
     td = ImageDraw.Draw(tmp)
     bb = sf.getbbox(spine_text)
     tw, th = bb[2] - bb[0], bb[3] - bb[1]
-    td.text(((spine_h - tw) // 2, (spine_w - th) // 2), spine_text, font=sf, fill=SPINE_WHITE)
-    rotated = tmp.rotate(90, expand=True)
-    px = SPINE_LEFT + (spine_w - rotated.size[0]) // 2
-    img.paste(rotated, (px, 120), rotated.split()[3])
+    td.text(((sh - tw) // 2, (sw - th) // 2), spine_text, font=sf, fill=WHITE)
+    rotated = tmp.rotate(-90, expand=True)
+    img.paste(rotated, (b['spine']['x'], b['spine']['y']), rotated.split()[3])
 
-    # --- Back cover ---
+    # --- BACK COVER ---
     if back_description:
         quote, attrib, body = _split_quote_body(back_description)
-        y_cur = QUOTE_Y
 
-        # Quote (auto-fit: larger font for shorter quotes)
+        quote_cx = b['quote']['x'] + b['quote']['w'] // 2
+
+        # Quote: regular Georgia, gold, centered
         if quote:
-            quote_max_h = 300
-            fq, lq = _fit(quote, BACK_TEXT_W - 40, quote_max_h, QUOTE_MAX_SIZE, 22, italic=True)
-            y_cur = _draw_centered(draw, lq, fq, BACK_CX, y_cur, LIGHT_GOLD)
+            fq, lq = _fit(quote, b['quote']['w'], b['quote']['h'], QUOTE_MAX, 18, italic=False)
+            _draw_centered(draw, lq, fq, quote_cx, b['quote']['y'], QUOTE_GOLD)
 
-            if attrib:
-                y_cur += 10
-                attr_sz = max(int(fq.size * 0.75), 20)
-                fa = _font(attr_sz, italic=True)
-                attr_text = f"\u2014 {attrib}"
-                attr_lines = _wrap(attr_text, fa, BACK_TEXT_W - 40)
-                y_cur = _draw_centered(draw, attr_lines, fa, BACK_CX, y_cur, LIGHT_GOLD)
+        # Attribution: italic Georgia, gold, centered
+        if attrib:
+            attrib_cx = b['attrib']['x'] + b['attrib']['w'] // 2
+            fa_attr, la_attr = _fit(f"\u2014 {attrib}", b['attrib']['w'], b['attrib']['h'], 36, 16, italic=True)
+            _draw_centered(draw, la_attr, fa_attr, attrib_cx, b['attrib']['y'], QUOTE_GOLD)
 
-            y_cur += BODY_GAP
-
-        # Body (justified, auto-fit to fill available space)
+        # Body: Georgia regular, white + gold shadow, justified
         if body:
-            body_max_h = BODY_Y_END - y_cur
-            fb, lb = _fit(body, BACK_TEXT_W, body_max_h, BODY_MAX_SIZE, 20)
-            _draw_justified(draw, lb, fb, BACK_MARGIN, SPINE_LEFT - BACK_MARGIN, y_cur, CREAM)
+            fb, lb = _fit(body, b['body']['w'], b['body']['h'], BODY_MAX, 18)
+            bx = b['body']['x']
+            bx_right = b['body']['x'] + b['body']['w']
+            by = b['body']['y']
+            _draw_justified(draw, lb, fb, bx, bx_right, by + 1, QUOTE_GOLD)
+            _draw_justified(draw, lb, fb, bx, bx_right, by, WHITE)
 
     return img
