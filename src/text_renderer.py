@@ -46,10 +46,10 @@ BACK_TEXT_W = SPINE_LEFT - BACK_MARGIN * 2
 MEDALLION_TOP = 830
 MEDALLION_BOTTOM = 830 + 1353
 
-# Colors (matched to Tim's original Illustrator design: warm antique gold)
-GOLD = (197, 165, 90)         # #c5a55a — titles, author, spine
-LIGHT_GOLD = (205, 180, 110)  # warm gold — back cover quote, attribution
-CREAM = (246, 229, 184)       # #f6e5b8 — subtitle, back body text
+# Colors (extracted from Tim's original Illustrator SVG)
+GOLD = (240, 206, 70)         # #f0ce46 — titles, author (from SVG fill)
+LIGHT_GOLD = (243, 207, 71)   # #f3cf47 — back cover quote, attribution
+CREAM = (243, 207, 71)        # #f3cf47 — subtitle, back body text (same warm gold)
 
 # Fonts (matched to Tim's original covers extracted from PDF)
 # Title: Cinzel (free Trajan Pro 3 alternative) — classic display serif
@@ -215,12 +215,14 @@ def render_text_on_template(template, title, subtitle="", author="", back_descri
     _draw_centered(draw, lines_a, font_a, FRONT_CX, AUTHOR_Y, GOLD, 1.25)
 
     # --- Spine ---
+    # --- Spine (white, bold, uppercase, title only — matches classic covers) ---
     spine_w = SPINE_RIGHT - SPINE_LEFT
-    spine_text = f"{title}  \u2014  {author}"
+    spine_text = title.upper()
     spine_h = H - 240
+    SPINE_WHITE = (255, 255, 255)
 
     for sz in range(SPINE_SIZE, 12, -1):
-        sf = _font(sz)
+        sf = _font_bold(sz)
         bb = sf.getbbox(spine_text)
         if bb[3] - bb[1] <= spine_w - 10 and bb[2] - bb[0] <= spine_h:
             break
@@ -229,7 +231,7 @@ def render_text_on_template(template, title, subtitle="", author="", back_descri
     td = ImageDraw.Draw(tmp)
     bb = sf.getbbox(spine_text)
     tw, th = bb[2] - bb[0], bb[3] - bb[1]
-    td.text(((spine_h - tw) // 2, (spine_w - th) // 2), spine_text, font=sf, fill=GOLD)
+    td.text(((spine_h - tw) // 2, (spine_w - th) // 2), spine_text, font=sf, fill=SPINE_WHITE)
     rotated = tmp.rotate(90, expand=True)
     px = SPINE_LEFT + (spine_w - rotated.size[0]) // 2
     img.paste(rotated, (px, 120), rotated.split()[3])

@@ -29,13 +29,15 @@ CONFIG_DIR = Path(__file__).resolve().parent.parent / "config"
 TEMPLATE_PATH = CONFIG_DIR / "cover_template_full.png"
 FRAME_OVERLAY_PATH = CONFIG_DIR / "frame_overlay_template.png"
 
-# Medallion center and radius (front cover)
+# Medallion geometry — same approach as Tim's classics compositor:
+# Art is placed at ART_CLIP_RADIUS (larger), frame covers the overlap at FRAME_HOLE_RADIUS (smaller).
+# The frame ring hides the art edge, creating a clean transition.
 MEDALLION_CX = 2930
 MEDALLION_CY = 1506
-ART_RADIUS = 470  # Radius of art circle — fits inside frame inner ring (starts at 479px)
-
-# Frame overlay position (centered on medallion)
-# Frame overlay is 1360x1353
+ART_CLIP_RADIUS = 600    # Art extends to this radius (same as classics)
+FRAME_HOLE_RADIUS = 540  # Frame opening radius (same as classics)
+INNER_FEATHER_PX = 8     # Feather on art clip edge
+NAVY_FILL_RGB = (21, 32, 76)
 
 
 def compose_biblical_cover(
@@ -49,94 +51,87 @@ def compose_biblical_cover(
     """
     Compose a complete biblical cover from AI art and book metadata.
 
-    Args:
-        ai_art: Square AI-generated illustration (any size, will be resized).
-        title: Book title.
-        subtitle: Book subtitle.
-        author: Book author.
-        back_description: Back cover description text.
-        template: Optional pre-loaded template image. Loads from disk if None.
-
-    Returns:
-        Complete cover as PIL Image (3884x2777 RGB).
+    Uses the same layering approach as Tim's classics compositor:
+    1. Start with template (navy + ornaments)
+    2. Place art layer at ART_CLIP_RADIUS (600px) — LARGER than frame hole
+    3. Place frame overlay on top — frame ring covers art edge at FRAME_HOLE_RADIUS (540px)
+    4. Render text on top
     """
-    # 1. Load template
     if template is None:
         template = Image.open(TEMPLATE_PATH).convert("RGB")
     img = template.copy()
 
-    # 2. Place AI art inside medallion circle
-    img = _place_art_in_medallion(img, ai_art)
+    # Preprocess art (same pipeline as classics)
+    ai_art = _strip_border(ai_art, border_percent=0.05)
+    ai_art = _smart_square_crop(ai_art)
+    region = Region(
+        center_x=MEDALLION_CX,
+        center_y=MEDALLION_CY,
+        radius=ART_CLIP_RADIUS,
+        frame_bbox=(MEDALLION_CX - ART_CLIP_RADIUS, MEDALLION_CY - ART_CLIP_RADIUS,
+                    MEDALLION_CX + ART_CLIP_RADIUS, MEDALLION_CY + ART_CLIP_RADIUS),
+        region_type="circle",
+    )
+    ai_art = _color_match_illustration(img, ai_art, region)
 
-    # 3. Overlay frame on top (preserves ornate gold ring)
-    img = _apply_frame_overlay(img)
+    # === LAYERING (same as classics compositor) ===
+    cover_w, cover_h = img.size
 
-    # 4. Render text on top of everything
+    # Layer 1: Art placed at ART_CLIP_RADIUS (600px)
+    art_diameter = ART_CLIP_RADIUS * 2
+    art_resized = ai_art.convert("RGBA").resize((art_diameter, art_diameter), Image.LANCZOS)
+
+    # Fill art background with navy (prevents transparency gaps)
+    art_bg = Image.new("RGBA", (art_diameter, art_diameter), (*NAVY_FILL_RGB, 255))
+    art_bg.alpha_composite(art_resized)
+
+    # Place art on full canvas with circular clip mask
+    art_layer = Image.new("RGBA", (cover_w, cover_h), (0, 0, 0, 0))
+    art_layer.paste(art_bg, (MEDALLION_CX - ART_CLIP_RADIUS, MEDALLION_CY - ART_CLIP_RADIUS))
+
+    clip_mask = _build_circle_feather_mask(
+        cover_w, cover_h, MEDALLION_CX, MEDALLION_CY, ART_CLIP_RADIUS, INNER_FEATHER_PX
+    )
+    art_layer.putalpha(clip_mask)
+
+    # Layer 2: Composite art onto template
+    canvas = img.convert("RGBA")
+    result = Image.alpha_composite(canvas, art_layer)
+
+    # Layer 3: Frame overlay on top (covers art edge)
+    result = _apply_frame_overlay_rgba(result)
+
+    # Convert back to RGB and render text
+    img = result.convert("RGB")
     img = render_text_on_template(img, title, subtitle, author, back_description)
 
     return img
 
 
-def _place_art_in_medallion(cover: Image.Image, art: Image.Image) -> Image.Image:
-    """Place circular-cropped art into the medallion opening.
-
-    Uses the same preprocessing as Tim's classics compositor:
-    1. Strip AI-generated border artifacts (adaptive edge detection)
-    2. Focus-aware smart square crop (subject detection)
-    3. Color-match art temperature to cover context (navy warmth)
-    4. Circular mask with feathered edge
-    """
-    # 1. Strip border artifacts (same as classics compositor)
-    art = _strip_border(art, border_percent=0.05)
-
-    # 2. Smart square crop — focus-aware subject detection
-    art = _smart_square_crop(art)
-
-    # 3. Color-match to cover context
-    region = Region(
-        center_x=MEDALLION_CX,
-        center_y=MEDALLION_CY,
-        radius=ART_RADIUS,
-        frame_bbox=(MEDALLION_CX - ART_RADIUS, MEDALLION_CY - ART_RADIUS,
-                    MEDALLION_CX + ART_RADIUS, MEDALLION_CY + ART_RADIUS),
-        region_type="circle",
-    )
-    art = _color_match_illustration(cover, art, region)
-
-    # 4. Resize to medallion diameter
-    diameter = ART_RADIUS * 2
-    art_resized = art.convert("RGBA").resize((diameter, diameter), Image.LANCZOS)
-
-    # 5. Circular mask with feathered edge
-    mask = Image.new("L", (diameter, diameter), 0)
-    draw = ImageDraw.Draw(mask)
-    draw.ellipse((0, 0, diameter - 1, diameter - 1), fill=255)
-    mask = mask.filter(ImageFilter.GaussianBlur(radius=4))
-
-    # 6. Paste at medallion position
-    x = MEDALLION_CX - ART_RADIUS
-    y = MEDALLION_CY - ART_RADIUS
-    cover.paste(art_resized, (x, y), mask)
-
-    return cover
+def _build_circle_feather_mask(w, h, cx, cy, radius, feather_px):
+    """Build a circular alpha mask with feathered edge — same as classics."""
+    import numpy as np
+    yy, xx = np.ogrid[:h, :w]
+    dist = np.sqrt((xx - cx) ** 2 + (yy - cy) ** 2).astype(np.float32)
+    mask = np.clip((radius - dist) / max(feather_px, 1), 0.0, 1.0)
+    return Image.fromarray((mask * 255).astype(np.uint8), mode="L")
 
 
-def _apply_frame_overlay(cover: Image.Image) -> Image.Image:
-    """Composite the gold frame overlay on top of the art."""
+def _apply_frame_overlay_rgba(cover: Image.Image) -> Image.Image:
+    """Composite the gold frame overlay on top of the art (RGBA input)."""
     if not FRAME_OVERLAY_PATH.exists():
         return cover
 
     frame = Image.open(FRAME_OVERLAY_PATH).convert("RGBA")
     fw, fh = frame.size
 
-    # Center frame on medallion
+    # Place frame centered on medallion
+    frame_layer = Image.new("RGBA", cover.size, (0, 0, 0, 0))
     x = MEDALLION_CX - fw // 2
     y = MEDALLION_CY - fh // 2
+    frame_layer.paste(frame, (x, y))
 
-    # Paste using alpha channel
-    cover.paste(frame, (x, y), frame.split()[3])
-
-    return cover
+    return Image.alpha_composite(cover, frame_layer)
 
 
 # ---------------------------------------------------------------------------
