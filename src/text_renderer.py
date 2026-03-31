@@ -53,7 +53,13 @@ WHITE = (255, 255, 255)       # subtitle, spine, author shadow, back body
 FONTS_DIR = Path(__file__).resolve().parent.parent / "config" / "fonts"
 
 def _font_title(size):
-    """Cinzel for titles — matches Trajan Pro 3 Bold from originals."""
+    """Cinzel Black for titles — heaviest weight for maximum presence."""
+    black = FONTS_DIR / "Cinzel-Black.ttf"
+    if black.exists():
+        return ImageFont.truetype(str(black), size)
+    bold = FONTS_DIR / "Cinzel-Bold.ttf"
+    if bold.exists():
+        return ImageFont.truetype(str(bold), size)
     return ImageFont.truetype(str(FONTS_DIR / "Cinzel.ttf"), size)
 
 def _font(size, italic=False):
@@ -204,15 +210,22 @@ def render_text_on_template(template, title, subtitle="", author="", back_descri
     QUOTE_MAX = 48
     BODY_MAX = 60
 
-    # --- TITLE: Cinzel bold, gold, bottom-aligned so it's always close to subtitle ---
+    # --- TITLE: Cinzel bold, gold ---
     title_cx = b['title']['x'] + b['title']['w'] // 2
-    ft, lt = _fit(title.upper(), b['title']['w'], b['title']['h'], TITLE_MAX, 40, font_func=_font_title)
-    _draw_centered(draw, lt, ft, title_cx, b['title']['y'], TITLE_GOLD, 1.15, box_h=b['title']['h'], valign="bottom")
+    if subtitle:
+        # Has subtitle: bottom-align title so it sits close to subtitle
+        ft, lt = _fit(title.upper(), b['title']['w'], b['title']['h'], TITLE_MAX, 40, font_func=_font_title)
+        _draw_centered(draw, lt, ft, title_cx, b['title']['y'], TITLE_GOLD, 1.15, box_h=b['title']['h'], valign="bottom")
+    else:
+        # No subtitle: expand title into combined title+subtitle zone for more presence
+        combined_h = (b['subtitle']['y'] + b['subtitle']['h']) - b['title']['y']
+        ft, lt = _fit(title.upper(), b['title']['w'], combined_h, TITLE_MAX, 40, font_func=_font_title)
+        _draw_centered(draw, lt, ft, title_cx, b['title']['y'], TITLE_GOLD, 1.15, box_h=combined_h, valign="bottom")
 
-    # --- SUBTITLE: Georgia regular (NOT italic), white, centered in box ---
+    # --- SUBTITLE: Georgia Bold, white, centered in box ---
     if subtitle:
         sub_cx = b['subtitle']['x'] + b['subtitle']['w'] // 2
-        fs, ls = _fit(subtitle, b['subtitle']['w'], b['subtitle']['h'], SUB_MAX, 20, italic=False)
+        fs, ls = _fit(subtitle, b['subtitle']['w'], b['subtitle']['h'], SUB_MAX, 20, font_func=_font_bold)
         _draw_centered(draw, ls, fs, sub_cx, b['subtitle']['y'], WHITE, 1.25)
 
     # --- AUTHOR: Cinzel bold, white shadow + gold, centered in box ---
@@ -258,12 +271,19 @@ def render_text_on_template(template, title, subtitle="", author="", back_descri
             _draw_centered(draw, la_attr, fa_attr, attrib_cx, b['attrib']['y'], QUOTE_GOLD)
 
         # Body: Georgia regular, white + gold shadow, justified
+        # When no quote/attrib, expand body upward into that space
         if body:
-            fb, lb = _fit(body, b['body']['w'], b['body']['h'], BODY_MAX, 18, spacing=1.45)
+            if not quote and not attrib:
+                # No quote section — body gets the full quote+attrib+body zone
+                body_y = b['quote']['y']
+                body_h = (b['body']['y'] + b['body']['h']) - b['quote']['y']
+            else:
+                body_y = b['body']['y']
+                body_h = b['body']['h']
+            fb, lb = _fit(body, b['body']['w'], body_h, BODY_MAX, 18, spacing=1.45)
             bx = b['body']['x']
             bx_right = b['body']['x'] + b['body']['w']
-            by = b['body']['y']
-            _draw_justified(draw, lb, fb, bx, bx_right, by + 1, QUOTE_GOLD)
-            _draw_justified(draw, lb, fb, bx, bx_right, by, WHITE)
+            _draw_justified(draw, lb, fb, bx, bx_right, body_y + 1, QUOTE_GOLD)
+            _draw_justified(draw, lb, fb, bx, bx_right, body_y, WHITE)
 
     return img

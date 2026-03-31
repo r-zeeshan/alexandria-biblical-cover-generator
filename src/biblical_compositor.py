@@ -12,12 +12,30 @@ from pathlib import Path
 from PIL import Image, ImageDraw, ImageFilter
 
 from src.text_renderer import render_text_on_template
-from src.cover_compositor import (
-    _strip_border,
-    _smart_square_crop,
-    _color_match_illustration,
-    Region,
-)
+
+try:
+    from src.cover_compositor import (
+        _strip_border,
+        _smart_square_crop,
+        _color_match_illustration,
+        Region,
+    )
+except (ImportError, ModuleNotFoundError):
+    # Lightweight fallbacks for local dev without full dependency chain
+    Region = None
+    _color_match_illustration = None
+
+    def _strip_border(img, border_percent=0.05):
+        w, h = img.size
+        b = int(min(w, h) * border_percent)
+        return img.crop((b, b, w - b, h - b))
+
+    def _smart_square_crop(img):
+        w, h = img.size
+        s = min(w, h)
+        left = (w - s) // 2
+        top = (h - s) // 2
+        return img.crop((left, top, left + s, top + s))
 
 log = logging.getLogger(__name__)
 
