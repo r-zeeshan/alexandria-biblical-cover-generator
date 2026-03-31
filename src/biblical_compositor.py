@@ -32,7 +32,7 @@ FRAME_OVERLAY_PATH = CONFIG_DIR / "frame_overlay_template.png"
 # Medallion center and radius (front cover)
 MEDALLION_CX = 2930
 MEDALLION_CY = 1506
-ART_RADIUS = 540  # Radius of the circular opening for art
+ART_RADIUS = 470  # Radius of art circle — fits inside frame inner ring (starts at 479px)
 
 # Frame overlay position (centered on medallion)
 # Frame overlay is 1360x1353
