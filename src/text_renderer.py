@@ -205,10 +205,10 @@ def render_text_on_template(template, title, subtitle="", author="", back_descri
     ft, lt = _fit(title.upper(), b['title']['w'], b['title']['h'], TITLE_MAX, 40, font_func=_font_title)
     _draw_centered(draw, lt, ft, title_cx, b['title']['y'], TITLE_GOLD, 1.15)
 
-    # --- SUBTITLE: Georgia italic, white, centered in box ---
+    # --- SUBTITLE: Georgia regular (NOT italic), white, centered in box ---
     if subtitle:
         sub_cx = b['subtitle']['x'] + b['subtitle']['w'] // 2
-        fs, ls = _fit(subtitle, b['subtitle']['w'], b['subtitle']['h'], SUB_MAX, 20, italic=True)
+        fs, ls = _fit(subtitle, b['subtitle']['w'], b['subtitle']['h'], SUB_MAX, 20, italic=False)
         _draw_centered(draw, ls, fs, sub_cx, b['subtitle']['y'], WHITE, 1.25)
 
     # --- AUTHOR: Cinzel bold, white shadow + gold, centered in box ---
