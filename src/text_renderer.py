@@ -25,7 +25,7 @@ BOX = {
     'spine':    {'x': 1379, 'y': 100,  'w': 130,  'h': 1914},
     'quote':    {'x': 114,  'y': 464,  'w': 1149, 'h': 214},
     'attrib':   {'x': 116,  'y': 691,  'w': 1149, 'h': 60},
-    'body':     {'x': 120,  'y': 784,  'w': 1152, 'h': 707},
+    'body':     {'x': 120,  'y': 784,  'w': 1152, 'h': 680},
 }
 
 # Derived from boxes
@@ -93,18 +93,22 @@ def _wrap(text, font, max_w):
     if cur: lines.append(cur)
     return lines
 
-def _fit(text, max_w, max_h, start_size, min_size=20, italic=False, font_func=None):
+def _fit(text, max_w, max_h, start_size, min_size=20, italic=False, font_func=None, spacing=1.35):
     _fn = font_func or (lambda sz: _font(sz, italic))
     for sz in range(start_size, min_size - 1, -2):
         f = _fn(sz)
         lines = _wrap(text, f, max_w)
-        if len(lines) * int(sz * 1.35) <= max_h:
+        if len(lines) * int(sz * spacing) <= max_h:
             return f, lines
     f = _fn(min_size)
     return f, _wrap(text, f, max_w)
 
-def _draw_centered(draw, lines, font, cx, y, color, spacing=1.35):
+def _draw_centered(draw, lines, font, cx, y, color, spacing=1.35, box_h=0, valign="top"):
+    """Draw centered text. valign='bottom' pushes text to bottom of box_h."""
     lh = int(font.size * spacing)
+    total_h = len(lines) * lh
+    if valign == "bottom" and box_h > 0 and total_h < box_h:
+        y = y + box_h - total_h  # push to bottom edge
     for line in lines:
         bb = font.getbbox(line)
         draw.text((cx - (bb[2] - bb[0]) // 2, y), line, font=font, fill=color)
@@ -200,10 +204,10 @@ def render_text_on_template(template, title, subtitle="", author="", back_descri
     QUOTE_MAX = 48
     BODY_MAX = 60
 
-    # --- TITLE: Cinzel bold, gold, centered in box ---
+    # --- TITLE: Cinzel bold, gold, bottom-aligned so it's always close to subtitle ---
     title_cx = b['title']['x'] + b['title']['w'] // 2
     ft, lt = _fit(title.upper(), b['title']['w'], b['title']['h'], TITLE_MAX, 40, font_func=_font_title)
-    _draw_centered(draw, lt, ft, title_cx, b['title']['y'], TITLE_GOLD, 1.15)
+    _draw_centered(draw, lt, ft, title_cx, b['title']['y'], TITLE_GOLD, 1.15, box_h=b['title']['h'], valign="bottom")
 
     # --- SUBTITLE: Georgia regular (NOT italic), white, centered in box ---
     if subtitle:
@@ -242,10 +246,10 @@ def render_text_on_template(template, title, subtitle="", author="", back_descri
 
         quote_cx = b['quote']['x'] + b['quote']['w'] // 2
 
-        # Quote: regular Georgia, gold, centered
+        # Quote: regular Georgia, gold, bottom-aligned so it's close to attribution
         if quote:
             fq, lq = _fit(quote, b['quote']['w'], b['quote']['h'], QUOTE_MAX, 18, italic=False)
-            _draw_centered(draw, lq, fq, quote_cx, b['quote']['y'], QUOTE_GOLD)
+            _draw_centered(draw, lq, fq, quote_cx, b['quote']['y'], QUOTE_GOLD, box_h=b['quote']['h'], valign="bottom")
 
         # Attribution: italic Georgia, gold, centered
         if attrib:
@@ -255,7 +259,7 @@ def render_text_on_template(template, title, subtitle="", author="", back_descri
 
         # Body: Georgia regular, white + gold shadow, justified
         if body:
-            fb, lb = _fit(body, b['body']['w'], b['body']['h'], BODY_MAX, 18)
+            fb, lb = _fit(body, b['body']['w'], b['body']['h'], BODY_MAX, 18, spacing=1.45)
             bx = b['body']['x']
             bx_right = b['body']['x'] + b['body']['w']
             by = b['body']['y']
