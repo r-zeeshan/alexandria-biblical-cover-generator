@@ -2110,7 +2110,7 @@ window.Pages.iterate = {
     const catalogId = 'biblical';
     let books = DB.dbGetAll('books');
     if (!books.length) books = await DB.loadBooks(catalogId);
-    if (!books.length) {
+    if (!books.length && catalogId !== 'biblical') {
       try {
         books = await Drive.syncCatalog({ catalog: catalogId, force: true, limit: 20000 });
       } catch {
@@ -2142,7 +2142,7 @@ window.Pages.iterate = {
         <div class="form-group">
           <div class="flex justify-between items-center">
             <label class="form-label">Book</label>
-            <button class="btn btn-secondary btn-sm" id="iterSyncBooksBtn">Sync</button>
+            ${catalogId === 'biblical' ? '' : '<button class="btn btn-secondary btn-sm" id="iterSyncBooksBtn">Sync</button>'}
           </div>
           <select class="form-select" id="iterBookSelect">
             <option value="">— Select a book —</option>

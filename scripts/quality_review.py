@@ -5413,6 +5413,17 @@ def _queue_catalog_enrichment(*, runtime: config.Config, books: list[int], reaso
 
 
 def _sync_catalog_from_drive(*, runtime: config.Config, force: bool = False, limit: int = 5000) -> dict[str, Any]:
+    # Biblical catalog uses a hardcoded template — Drive sync would inject classics books.
+    if runtime.catalog_id == "biblical":
+        catalog_rows = _catalog_books_payload(runtime.book_catalog_path)
+        return {
+            "books": [{"id": _safe_int(r.get("number"), 0), "number": _safe_int(r.get("number"), 0),
+                        "title": str(r.get("title", "")), "author": str(r.get("author", ""))}
+                       for r in catalog_rows if isinstance(r, dict) and _safe_int(r.get("number"), 0) > 0],
+            "source_count": 0,
+            "drive_total": 0,
+            "summary": {"matched": 0, "added": 0, "skipped": "biblical catalog does not use Drive sync"},
+        }
     source_default = (
         str(getattr(runtime, "gdrive_source_folder_id", "") or "").strip()
         or str(getattr(runtime, "gdrive_input_folder_id", "") or "").strip()
