@@ -230,17 +230,31 @@ def render_text_on_template(template, title, subtitle="", author="", back_descri
         _draw_centered(draw, ls, fs, sub_cx, b['subtitle']['y'], WHITE, 1.25)
 
     # --- AUTHOR: Cinzel bold, white shadow + gold ---
-    # Try to fit in the main author box first; if it doesn't fit, use combined height
+    # Split "Main Name (Attribution)" into two parts if extension box available
     auth_cx = b['author']['x'] + b['author']['w'] // 2
-    auth_h = b['author']['h']
-    fa, la = _fit(author.upper(), b['author']['w'], auth_h, AUTH_MAX, 30, font_func=_font_title)
-    # Check if it actually fit or hit min_size — if min_size, try combined box
-    lh = int(fa.size * 1.15)
-    if len(la) * lh > auth_h and 'author_ext' in b:
-        combined_h = auth_h + b['author_ext']['h']
-        fa, la = _fit(author.upper(), b['author']['w'], combined_h, AUTH_MAX, 30, font_func=_font_title)
-    _draw_centered(draw, la, fa, auth_cx, b['author']['y'] + 2, WHITE, 1.15)
-    _draw_centered(draw, la, fa, auth_cx, b['author']['y'], AUTHOR_GOLD, 1.15)
+    auth_main = author.strip()
+    auth_bracket = ""
+    if 'author_ext' in b and '(' in auth_main:
+        paren_idx = auth_main.index('(')
+        auth_bracket = auth_main[paren_idx:].strip()
+        auth_main = auth_main[:paren_idx].strip()
+
+    if auth_bracket:
+        # Main name in primary box (large)
+        fa, la = _fit(auth_main.upper(), b['author']['w'], b['author']['h'], AUTH_MAX, 30, font_func=_font_title)
+        _draw_centered(draw, la, fa, auth_cx, b['author']['y'] + 2, WHITE, 1.15)
+        _draw_centered(draw, la, fa, auth_cx, b['author']['y'], AUTHOR_GOLD, 1.15)
+        # Bracketed attribution in extension box (smaller)
+        ext = b['author_ext']
+        ext_cx = ext['x'] + ext['w'] // 2
+        fe, le = _fit(auth_bracket.upper(), ext['w'], ext['h'], 60, 20, font_func=_font_title)
+        _draw_centered(draw, le, fe, ext_cx, ext['y'] + 2, WHITE, 1.15)
+        _draw_centered(draw, le, fe, ext_cx, ext['y'], AUTHOR_GOLD, 1.15)
+    else:
+        # No brackets, fit whole name in primary box
+        fa, la = _fit(auth_main.upper(), b['author']['w'], b['author']['h'], AUTH_MAX, 30, font_func=_font_title)
+        _draw_centered(draw, la, fa, auth_cx, b['author']['y'] + 2, WHITE, 1.15)
+        _draw_centered(draw, la, fa, auth_cx, b['author']['y'], AUTHOR_GOLD, 1.15)
 
     # --- SPINE: Cinzel bold, white, rotated ---
     spine_text = title.upper()
