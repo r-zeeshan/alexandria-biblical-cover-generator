@@ -19,13 +19,14 @@ W, H = 2898, 2114
 # Bounding boxes from visual editor (exact pixel coordinates at 2898x2114)
 # Text will NEVER overflow these boxes.
 BOX = {
-    'title':    {'x': 1691, 'y': 213,  'w': 1005, 'h': 278},
-    'subtitle': {'x': 1622, 'y': 523,  'w': 1174, 'h': 200},
-    'author':   {'x': 1800, 'y': 1753, 'w': 851,  'h': 178},
-    'spine':    {'x': 1379, 'y': 100,  'w': 130,  'h': 1914},
-    'quote':    {'x': 114,  'y': 464,  'w': 1149, 'h': 214},
-    'attrib':   {'x': 116,  'y': 691,  'w': 1149, 'h': 60},
-    'body':     {'x': 120,  'y': 784,  'w': 1152, 'h': 680},
+    'title':     {'x': 1691, 'y': 213, 'w': 1005,  'h': 278},
+    'subtitle':  {'x': 1622, 'y': 523, 'w': 1174,  'h': 200},
+    'author':    {'x': 1684, 'y': 1766, 'w': 1021,  'h': 149},
+    'author_ext':{'x': 1913, 'y': 1909, 'w': 556,  'h': 115},
+    'spine':     {'x': 1379, 'y': 100, 'w': 130,  'h': 1914},
+    'quote':     {'x': 114, 'y': 464, 'w': 1149,  'h': 214},
+    'attrib':    {'x': 116, 'y': 691, 'w': 1149,  'h': 60},
+    'body':      {'x': 120, 'y': 784, 'w': 1152,  'h': 680},
 }
 
 # Derived from boxes
@@ -205,7 +206,7 @@ def render_text_on_template(template, title, subtitle="", author="", back_descri
     # Max font sizes from Tim's Illustrator (45pt, 21pt, 34pt, 25pt, 15pt, 12pt × 3.26px/pt)
     TITLE_MAX = 146
     SUB_MAX = 68
-    AUTH_MAX = 110
+    AUTH_MAX = 146
     SPINE_MAX = 81
     QUOTE_MAX = 48
     BODY_MAX = 60
@@ -228,9 +229,16 @@ def render_text_on_template(template, title, subtitle="", author="", back_descri
         fs, ls = _fit(subtitle, b['subtitle']['w'], b['subtitle']['h'], SUB_MAX, 20, font_func=_font_bold)
         _draw_centered(draw, ls, fs, sub_cx, b['subtitle']['y'], WHITE, 1.25)
 
-    # --- AUTHOR: Cinzel bold, white shadow + gold, centered in box ---
+    # --- AUTHOR: Cinzel bold, white shadow + gold ---
+    # Try to fit in the main author box first; if it doesn't fit, use combined height
     auth_cx = b['author']['x'] + b['author']['w'] // 2
-    fa, la = _fit(author.upper(), b['author']['w'], b['author']['h'], AUTH_MAX, 24, font_func=_font_title)
+    auth_h = b['author']['h']
+    fa, la = _fit(author.upper(), b['author']['w'], auth_h, AUTH_MAX, 30, font_func=_font_title)
+    # Check if it actually fit or hit min_size — if min_size, try combined box
+    lh = int(fa.size * 1.15)
+    if len(la) * lh > auth_h and 'author_ext' in b:
+        combined_h = auth_h + b['author_ext']['h']
+        fa, la = _fit(author.upper(), b['author']['w'], combined_h, AUTH_MAX, 30, font_func=_font_title)
     _draw_centered(draw, la, fa, auth_cx, b['author']['y'] + 2, WHITE, 1.15)
     _draw_centered(draw, la, fa, auth_cx, b['author']['y'], AUTHOR_GOLD, 1.15)
 
@@ -259,9 +267,9 @@ def render_text_on_template(template, title, subtitle="", author="", back_descri
 
         quote_cx = b['quote']['x'] + b['quote']['w'] // 2
 
-        # Quote: regular Georgia, gold, bottom-aligned so it's close to attribution
+        # Quote: bold Georgia, gold, bottom-aligned so it's close to attribution
         if quote:
-            fq, lq = _fit(quote, b['quote']['w'], b['quote']['h'], QUOTE_MAX, 18, italic=False)
+            fq, lq = _fit(quote, b['quote']['w'], b['quote']['h'], QUOTE_MAX, 18, font_func=_font_bold)
             _draw_centered(draw, lq, fq, quote_cx, b['quote']['y'], QUOTE_GOLD, box_h=b['quote']['h'], valign="bottom")
 
         # Attribution: italic Georgia, gold, centered
