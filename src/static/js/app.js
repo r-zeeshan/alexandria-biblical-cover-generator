@@ -322,12 +322,15 @@ window.JobQueue = {
       }
       if (elapsedMs > this.DEAD_JOB_TIMEOUT) {
         const backendStatus = String(entry.job._backendStatus || '').trim().toLowerCase();
-        const backendStillActive = backendStatus === 'running' || backendStatus === 'retrying';
+        const backendStillActive = backendStatus === 'running' || backendStatus === 'retrying' || backendStatus === 'queued';
         if (backendStillActive) {
+          if (backendStatus === 'queued') {
+            entry.job._subStatus = `Queued on backend (${backendAge}s — waiting for worker)`;
+          }
           DB.dbPut('jobs', entry.job);
           continue;
         }
-        if ((!backendStatus || backendStatus === 'queued') && !entry.job._deadTimeoutGraceGranted) {
+        if (!backendStatus && !entry.job._deadTimeoutGraceGranted) {
           entry.job._deadTimeoutGraceGranted = true;
           entry.job._subStatus = 'Retrying connection to backend...';
           DB.dbPut('jobs', entry.job);
