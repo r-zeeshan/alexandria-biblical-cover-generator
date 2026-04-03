@@ -204,7 +204,7 @@ def render_text_on_template(template, title, subtitle="", author="", back_descri
     b = BOX  # shorthand
 
     # Max font sizes from Tim's Illustrator (45pt, 21pt, 34pt, 25pt, 15pt, 12pt × 3.26px/pt)
-    TITLE_MAX = 146
+    TITLE_MAX = 125
     SUB_MAX = 68
     AUTH_MAX = 146
     SPINE_MAX = 81
