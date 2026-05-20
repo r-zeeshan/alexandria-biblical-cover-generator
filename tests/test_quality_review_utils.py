@@ -23,6 +23,24 @@ def test_cache_key_stable_and_sorted():
     assert key == "classics:/api/x?a=z&b=1,2"
 
 
+def test_save_to_drive_folder_prefers_specific_env(monkeypatch: pytest.MonkeyPatch):
+    keys = ("SAVE_RAW_DRIVE_FOLDER_ID", "DRIVE_OUTPUT_FOLDER_ID", "GDRIVE_OUTPUT_FOLDER_ID")
+    for key in keys:
+        monkeypatch.delenv(key, raising=False)
+    monkeypatch.setattr(qr.config, "GDRIVE_OUTPUT_FOLDER_ID", "configured-output-folder")
+
+    assert qr._drive_folder_id_from_env(*keys) == "configured-output-folder"
+
+    monkeypatch.setenv("GDRIVE_OUTPUT_FOLDER_ID", "legacy-output-folder")
+    assert qr._drive_folder_id_from_env(*keys) == "legacy-output-folder"
+
+    monkeypatch.setenv("DRIVE_OUTPUT_FOLDER_ID", "canonical-output-folder")
+    assert qr._drive_folder_id_from_env(*keys) == "canonical-output-folder"
+
+    monkeypatch.setenv("SAVE_RAW_DRIVE_FOLDER_ID", "raw-specific-folder")
+    assert qr._drive_folder_id_from_env(*keys) == "raw-specific-folder"
+
+
 def test_performance_summary_payload_reports_quantiles(monkeypatch: pytest.MonkeyPatch):
     runtime = SimpleNamespace(catalog_id="classics")
     sample_rows = [

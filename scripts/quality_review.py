@@ -163,8 +163,27 @@ DRIVE_SYNC_LOG_PATH = PROJECT_ROOT / "data" / "drive_sync_log.json"
 SETTINGS_STORE_PATH = PROJECT_ROOT / "settings_store.json"
 CGI_CATALOG_CACHE_PATH = PROJECT_ROOT / "catalog_cache.json"
 CGI_CATALOG_MAX_AGE_SECONDS = 3600
-SAVE_RAW_DRIVE_FOLDER_ID = "1CWab8_FWZqEXmJHeIcSnbrT_NWJkrYUe"
-SAVE_RESULT_DRIVE_FOLDER_ID = "1CWab8_FWZqEXmJHeIcSnbrT_NWJkrYUe"
+DEFAULT_SAVE_DRIVE_FOLDER_ID = "1gtONw3PuY0pBj7hWtSGsXZ8_Qy9IM1x9"
+
+
+def _drive_folder_id_from_env(*keys: str) -> str:
+    for key in keys:
+        value = os.getenv(key, "").strip()
+        if value:
+            return value
+    return str(config.GDRIVE_OUTPUT_FOLDER_ID or DEFAULT_SAVE_DRIVE_FOLDER_ID).strip()
+
+
+SAVE_RAW_DRIVE_FOLDER_ID = _drive_folder_id_from_env(
+    "SAVE_RAW_DRIVE_FOLDER_ID",
+    "DRIVE_OUTPUT_FOLDER_ID",
+    "GDRIVE_OUTPUT_FOLDER_ID",
+)
+SAVE_RESULT_DRIVE_FOLDER_ID = _drive_folder_id_from_env(
+    "SAVE_RESULT_DRIVE_FOLDER_ID",
+    "DRIVE_OUTPUT_FOLDER_ID",
+    "GDRIVE_OUTPUT_FOLDER_ID",
+)
 SAVE_RAW_LOCAL_DIRNAME = "Chosen Winner Generated Covers"
 SAVE_RAW_DRIVE_RETRY_ATTEMPTS = max(1, int(os.getenv("SAVE_RAW_DRIVE_RETRY_ATTEMPTS", "2")))
 SAVE_RAW_DRIVE_RETRY_DELAY_SECONDS = max(0.0, float(os.getenv("SAVE_RAW_DRIVE_RETRY_DELAY_SECONDS", "0.5")))

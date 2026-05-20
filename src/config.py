@@ -19,11 +19,11 @@ try:
 except ModuleNotFoundError:  # pragma: no cover
     from logger import get_logger  # type: ignore
 
-load_dotenv()
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+load_dotenv(PROJECT_ROOT / ".env")
 logger = get_logger(__name__)
 
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
 INPUT_DIR = PROJECT_ROOT / os.getenv("INPUT_DIR", "Input Covers")
 OUTPUT_DIR = PROJECT_ROOT / os.getenv("OUTPUT_DIR", "Output Covers")
 TMP_DIR = PROJECT_ROOT / os.getenv("TMP_DIR", "tmp")
@@ -58,8 +58,8 @@ LLM_COST_PER_1K_TOKENS = float(os.getenv("LLM_COST_PER_1K_TOKENS", "0.003"))
 # Prefer DRIVE_* env vars, keep GDRIVE_* aliases for backwards compatibility.
 GDRIVE_OUTPUT_FOLDER_ID = os.getenv(
     "DRIVE_OUTPUT_FOLDER_ID",
-    os.getenv("GDRIVE_OUTPUT_FOLDER_ID", "1CWab8_FWZqEXmJHeIcSnbrT_NWJkrYUe"),
-)
+    os.getenv("GDRIVE_OUTPUT_FOLDER_ID", "1gtONw3PuY0pBj7hWtSGsXZ8_Qy9IM1x9"),
+).strip()
 GDRIVE_SOURCE_FOLDER_ID = os.getenv(
     "DRIVE_SOURCE_FOLDER_ID",
     os.getenv("GDRIVE_SOURCE_FOLDER_ID", "1ybFYDJk7Y3VlbsEjRAh1LOfdyVsHM_cS"),
