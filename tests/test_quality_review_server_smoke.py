@@ -34,6 +34,12 @@ def _fetch_status(base_url: str, path: str) -> int:
         return int(getattr(response, "status", 200))
 
 
+def _fetch_head_status(base_url: str, path: str) -> int:
+    request = Request(f"{base_url}{path}", method="HEAD")
+    with urlopen(request, timeout=10) as response:
+        return int(getattr(response, "status", 200))
+
+
 def _request_json(
     base_url: str,
     path: str,
@@ -307,6 +313,15 @@ def test_quality_review_server_primary_routes_smoke():
 
         for path in pages + apis:
             assert _fetch_status(base_url, path) == 200, path
+    finally:
+        _stop_server(process)
+
+
+def test_quality_review_server_spa_routes_support_head():
+    process, base_url = _start_server()
+    try:
+        for path in ("/", "/iterate", "/review", "/analytics/models"):
+            assert _fetch_head_status(base_url, path) == 200, path
     finally:
         _stop_server(process)
 

@@ -164,6 +164,26 @@ SETTINGS_STORE_PATH = PROJECT_ROOT / "settings_store.json"
 CGI_CATALOG_CACHE_PATH = PROJECT_ROOT / "catalog_cache.json"
 CGI_CATALOG_MAX_AGE_SECONDS = 3600
 DEFAULT_SAVE_DRIVE_FOLDER_ID = "1gtONw3PuY0pBj7hWtSGsXZ8_Qy9IM1x9"
+SPA_ROUTES = {
+    "/iterate",
+    "/batch",
+    "/jobs",
+    "/review",
+    "/visual-qa",
+    "/compare",
+    "/similarity",
+    "/mockups",
+    "/dashboard",
+    "/history",
+    "/analytics",
+    "/analytics/models",
+    "/catalogs",
+    "/prompts",
+    "/settings",
+    "/catalog/settings",
+    "/admin/performance",
+    "/api-docs",
+}
 
 
 def _drive_folder_id_from_env(*keys: str) -> str:
@@ -8137,6 +8157,22 @@ def serve_review_webapp(
             )
             super().end_headers()
 
+        def do_HEAD(self):
+            parsed = urlparse(self.path)
+            path = parsed.path
+            if path in {"", "/"}:
+                path = "/iterate"
+            if path in SPA_ROUTES:
+                index_path = PROJECT_ROOT / "src" / "static" / "index.html"
+                if index_path.is_file():
+                    self.send_response(HTTPStatus.OK)
+                    self.send_header("Content-Type", "text/html; charset=utf-8")
+                    self.send_header("Cache-Control", "no-store")
+                    self.send_header("Content-Length", str(index_path.stat().st_size))
+                    self.end_headers()
+                    return
+            return super().do_HEAD()
+
         def _serve_project_relative(
             self,
             request_path: str,
@@ -8347,27 +8383,7 @@ def serve_review_webapp(
                         return self._send_json(payload)
                 return self._send_json(_build_cgi_catalog_payload())
 
-            spa_routes = {
-                "/iterate",
-                "/batch",
-                "/jobs",
-                "/review",
-                "/visual-qa",
-                "/compare",
-                "/similarity",
-                "/mockups",
-                "/dashboard",
-                "/history",
-                "/analytics",
-                "/analytics/models",
-                "/catalogs",
-                "/prompts",
-                "/settings",
-                "/catalog/settings",
-                "/admin/performance",
-                "/api-docs",
-            }
-            if path in spa_routes:
+            if path in SPA_ROUTES:
                 return self._serve_project_relative(
                     "/src/static/index.html",
                     allowed_roots=[PROJECT_ROOT / "src" / "static"],
