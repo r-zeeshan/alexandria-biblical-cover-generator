@@ -58,7 +58,7 @@ LLM_COST_PER_1K_TOKENS = float(os.getenv("LLM_COST_PER_1K_TOKENS", "0.003"))
 # Prefer DRIVE_* env vars, keep GDRIVE_* aliases for backwards compatibility.
 GDRIVE_OUTPUT_FOLDER_ID = os.getenv(
     "DRIVE_OUTPUT_FOLDER_ID",
-    os.getenv("GDRIVE_OUTPUT_FOLDER_ID", "1gtONw3PuY0pBj7hWtSGsXZ8_Qy9IM1x9"),
+    os.getenv("GDRIVE_OUTPUT_FOLDER_ID", "1bGCr33r6k5v8_CU9Q12717h7YmGnA3qX"),
 ).strip()
 GDRIVE_SOURCE_FOLDER_ID = os.getenv(
     "DRIVE_SOURCE_FOLDER_ID",
