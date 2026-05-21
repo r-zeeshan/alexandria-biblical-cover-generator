@@ -449,14 +449,14 @@ def test_drive_and_budget_alias_env_vars_are_honored(monkeypatch: pytest.MonkeyP
         importlib.reload(reloaded)
 
 
-def test_job_workers_defaults_to_four(monkeypatch: pytest.MonkeyPatch):
+def test_job_workers_defaults_to_ten(monkeypatch: pytest.MonkeyPatch):
     old_job_workers = os.environ.get("JOB_WORKERS")
     monkeypatch.delenv("JOB_WORKERS", raising=False)
     reloaded = importlib.reload(config)
     try:
         cfg = reloaded.get_config("classics")
-        assert reloaded.JOB_WORKERS == 4
-        assert cfg.job_workers == 4
+        assert reloaded.JOB_WORKERS == 10
+        assert cfg.job_workers == 10
     finally:
         if old_job_workers is None:
             os.environ.pop("JOB_WORKERS", None)

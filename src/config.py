@@ -313,9 +313,9 @@ MODEL_MODALITY: dict[str, str] = {
     "google/gemini-2.5-flash-image": "both",
 }
 
-VARIANTS_PER_COVER = int(os.getenv("VARIANTS_PER_COVER", "5"))
-MAX_GENERATION_VARIANTS = int(os.getenv("MAX_GENERATION_VARIANTS", "50"))
-BATCH_CONCURRENCY = int(os.getenv("BATCH_CONCURRENCY", "10"))
+VARIANTS_PER_COVER = int(os.getenv("VARIANTS_PER_COVER", "4"))
+MAX_GENERATION_VARIANTS = int(os.getenv("MAX_GENERATION_VARIANTS", "4"))
+BATCH_CONCURRENCY = int(os.getenv("BATCH_CONCURRENCY", "4"))
 REQUEST_DELAY = float(os.getenv("REQUEST_DELAY", "0.2"))
 MAX_RETRIES = int(os.getenv("MAX_RETRIES", "3"))
 PROVIDER_CIRCUIT_FAILURE_THRESHOLD = int(os.getenv("PROVIDER_CIRCUIT_FAILURE_THRESHOLD", "15"))
@@ -363,7 +363,7 @@ SLO_ALERT_LEVELS = [
     token.strip().lower() for token in os.getenv("SLO_ALERT_LEVELS", "breached,at_risk").split(",") if token.strip()
 ]
 SLO_MONITOR_INTERVAL_SECONDS = int(os.getenv("SLO_MONITOR_INTERVAL_SECONDS", "300"))
-JOB_WORKERS = int(os.getenv("JOB_WORKERS", "20"))
+JOB_WORKERS = int(os.getenv("JOB_WORKERS", "10"))
 JOB_WORKER_MODE = os.getenv("JOB_WORKER_MODE", "inline").strip().lower() or "inline"
 JOB_WORKER_HEARTBEAT_PATH = PROJECT_ROOT / os.getenv("JOB_WORKER_HEARTBEAT_PATH", "data/worker_heartbeat.json")
 JOB_WORKER_HEARTBEAT_STALE_SECONDS = int(os.getenv("JOB_WORKER_HEARTBEAT_STALE_SECONDS", "120"))
