@@ -1039,6 +1039,13 @@ def test_generate_all_models_dry_run_resume_and_failures(tmp_path: Path, monkeyp
         )
 
 
+def test_generation_pool_size_uses_batch_concurrency_as_hard_cap():
+    assert ig._generation_pool_size(task_count=0, batch_concurrency=4) == 1
+    assert ig._generation_pool_size(task_count=3, batch_concurrency=4) == 3
+    assert ig._generation_pool_size(task_count=88, batch_concurrency=4) == 4
+    assert ig._generation_pool_size(task_count=88, batch_concurrency=0) == 1
+
+
 def test_diversify_prompt_for_model_variant_injects_style_and_provider_hint():
     prompt = ig._diversify_prompt_for_model_variant(
         prompt="Classical medallion scene for the title.",

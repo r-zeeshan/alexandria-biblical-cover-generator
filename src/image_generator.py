@@ -2391,6 +2391,13 @@ def generate_image(
     return buffer.getvalue()
 
 
+def _generation_pool_size(*, task_count: int, batch_concurrency: int) -> int:
+    if int(task_count or 0) <= 0:
+        return 1
+    configured = max(1, int(batch_concurrency or 1))
+    return min(int(task_count), configured)
+
+
 def generate_all_models(
     book_number: int,
     prompt: str,
@@ -2568,7 +2575,7 @@ def generate_all_models(
         _append_generation_plan(runtime.generation_plan_path, dry_run_plan)
         return _sort_results(results)
 
-    max_workers = min(len(tasks), max(len(models), runtime.batch_concurrency, 1)) if tasks else 1
+    max_workers = _generation_pool_size(task_count=len(tasks), batch_concurrency=runtime.batch_concurrency)
     if tasks:
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
             future_map = {
